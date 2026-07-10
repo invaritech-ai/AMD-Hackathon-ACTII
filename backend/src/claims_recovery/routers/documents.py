@@ -1,17 +1,21 @@
 from __future__ import annotations
 
+import json
 import shutil
 import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from claims_recovery.config import settings
 from claims_recovery.database import get_db
+from claims_recovery.models.document import Document
 from claims_recovery.schemas.api import DocumentUploadResponse
 from claims_recovery.services.document_service import process_document
 from claims_recovery.services.ingestion import SUPPORTED_SUFFIXES, is_supported
+from claims_recovery.services.linker import build_graph
 
 router = APIRouter(prefix="/api/v1/documents", tags=["documents"])
 
@@ -51,3 +55,19 @@ async def upload_document(
         type=document.type,
         status=document.status,
     )
+
+
+@router.get("/graph")
+async def document_graph(session: AsyncSession = Depends(get_db)) -> dict:
+    """Case graph over all documents: nodes=docs, edges=shared ids (slice 3)."""
+    result = await session.execute(select(Document))
+    docs = [
+        {
+            "id": d.id,
+            "type": d.type.value,
+            "filename": d.original_filename,
+            "ids": (json.loads(d.extracted_json).get("ids") if d.extracted_json else {}) or {},
+        }
+        for d in result.scalars()
+    ]
+    return build_graph(docs)
