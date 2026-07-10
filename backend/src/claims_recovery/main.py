@@ -7,7 +7,6 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from claims_recovery.config import settings
 from claims_recovery.database import engine
 from claims_recovery.models.base import Base
 from claims_recovery.routers import documents, ledger, runs
@@ -18,13 +17,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    if settings.use_queue:
-        # Open the procrastinate pool so request handlers can defer jobs.
-        from claims_recovery.procrastinate_app import app as procrastinate_app
+    # Open the procrastinate pool so request handlers can defer jobs to the worker.
+    from claims_recovery.procrastinate_app import app as procrastinate_app
 
-        async with procrastinate_app.open_async():
-            yield
-    else:
+    async with procrastinate_app.open_async():
         yield
 
     await engine.dispose()

@@ -27,8 +27,8 @@ async def process_document_by_id(session: AsyncSession, document_id: str) -> Non
 async def run_pipeline(session: AsyncSession, document: Document) -> Document:
     """OCR -> classify -> extract -> verify on an already-persisted document row.
 
-    Runs inline (SQLite/tests) or on the worker (Postgres); the caller owns row
-    creation so the upload response can return before this heavy work finishes.
+    Runs on the procrastinate worker; the upload handler owns row creation so the
+    response returns before this heavy work finishes.
     """
     file_path = Path(document.file_path)
     original_filename = document.original_filename

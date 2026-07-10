@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     )
 
     fireworks_api_key: str = ""
-    database_url: str = "sqlite+aiosqlite:///claims_recovery.db"
+    database_url: str = "postgresql+asyncpg://claims:claims@localhost:5432/claims"
     upload_dir: Path = Path("data/uploads")
     fireworks_base_url: str = "https://api.fireworks.ai/inference/v1"
 
@@ -31,12 +31,6 @@ class Settings(BaseSettings):
     model_po_matcher: str = "accounts/fireworks/models/llama-v3p1-70b-instruct"
     model_contract_validator: str = "accounts/fireworks/models/deepseek-r1"
     model_claim_drafter: str = "accounts/fireworks/models/llama-v3p1-70b-instruct"
-
-    @property
-    def use_queue(self) -> bool:
-        """Postgres => process uploads on the procrastinate worker. SQLite
-        (tests / no-docker local) => process inline in the request."""
-        return self.database_url.startswith("postgresql")
 
     @property
     def procrastinate_dsn(self) -> str:

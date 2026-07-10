@@ -17,7 +17,6 @@ from claims_recovery.schemas.api import (
     DocumentUploadResponse,
     GraphResponse,
 )
-from claims_recovery.services.document_service import run_pipeline
 from claims_recovery.services.ingestion import SUPPORTED_SUFFIXES, is_supported
 from claims_recovery.services.linker import build_graph
 
@@ -58,16 +57,12 @@ async def upload_document(
     await session.commit()
     await session.refresh(document)
 
-    if settings.use_queue:
-        # Postgres: hand off to the procrastinate worker, return immediately.
-        # type/status stay unknown/queued until the worker finishes — poll
-        # GET /documents/{id} (or the graph) to see them resolve.
-        from claims_recovery.tasks import process_document_task
+    # Hand off to the procrastinate worker, return immediately. type/status stay
+    # unknown/queued until the worker finishes — poll GET /documents/{id} (or the
+    # graph) to watch them resolve.
+    from claims_recovery.tasks import process_document_task
 
-        await process_document_task.defer_async(document_id=document.id)
-    else:
-        # SQLite/tests: no worker running, so process inline before responding.
-        await run_pipeline(session, document)
+    await process_document_task.defer_async(document_id=document.id)
 
     return DocumentUploadResponse(
         document_id=document.id,
@@ -97,9 +92,18 @@ async def document_graph(session: AsyncSession = Depends(get_db)) -> GraphRespon
 @router.get("/{document_id}", response_model=DocumentDetail)
 async def get_document(
     document_id: str, session: AsyncSession = Depends(get_db)
-) -> Document:
+) -> DocumentDetail:
     """Poll a document's processing state (async upload flow)."""
     document = await session.get(Document, document_id)
     if document is None:
         raise HTTPException(status_code=404, detail="Document not found")
-    return document
+    return DocumentDetail(
+        id=document.id,
+        filename=document.original_filename,
+        type=document.type,
+        status=document.status,
+        extracted_text=document.extracted_text,
+        # Column stores JSON text; the schema exposes it as an object.
+        extracted_json=json.loads(document.extracted_json) if document.extracted_json else None,
+        created_at=document.created_at,
+    )

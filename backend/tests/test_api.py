@@ -27,7 +27,7 @@ INVOICE_DIR = Path(__file__).resolve().parents[2] / "data" / "invoices"
 
 
 @pytest.mark.asyncio
-async def test_upload_real_invoice(client: AsyncClient):
+async def test_upload_enqueues_then_worker_processes(client: AsyncClient, session):
     # Find the first available invoice PDF
     pdfs = list(INVOICE_DIR.glob("*.pdf"))
     if not pdfs:
@@ -39,11 +39,24 @@ async def test_upload_real_invoice(client: AsyncClient):
             files={"file": (pdfs[0].name, f, "application/pdf")},
         )
 
+    # Async upload: the row exists and the job is queued, not yet processed.
     assert resp.status_code == 200
     data = resp.json()
-    assert data["document_id"]
-    assert data["type"] == "invoice"
-    assert data["status"] == "classified"
+    doc_id = data["document_id"]
+    assert doc_id
+    assert data["status"] == "queued"
+    assert data["type"] == "unknown"
+
+    # Run the pipeline as the worker would, then poll the document.
+    from claims_recovery.services.document_service import process_document_by_id
+
+    await process_document_by_id(session, doc_id)
+
+    got = await client.get(f"/api/v1/documents/{doc_id}")
+    assert got.status_code == 200
+    detail = got.json()
+    assert detail["type"] == "invoice"
+    assert detail["status"] == "classified"
 
 
 @pytest.mark.asyncio
@@ -71,12 +84,12 @@ async def test_get_nonexistent_run(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_full_upload_and_run(client: AsyncClient):
+async def test_full_upload_and_run(client: AsyncClient, session):
     pdfs = list(INVOICE_DIR.glob("*.pdf"))
     if not pdfs:
         pytest.skip("No invoice PDFs available")
 
-    # Upload
+    # Upload, then run the pipeline as the worker would so an invoice exists.
     with open(pdfs[0], "rb") as f:
         upload_resp = await client.post(
             "/api/v1/documents/upload",
@@ -84,6 +97,10 @@ async def test_full_upload_and_run(client: AsyncClient):
         )
     assert upload_resp.status_code == 200
     doc_id = upload_resp.json()["document_id"]
+
+    from claims_recovery.services.document_service import process_document_by_id
+
+    await process_document_by_id(session, doc_id)
 
     # Create run (may fail if no Fireworks key, but should return a response)
     run_resp = await client.post(
