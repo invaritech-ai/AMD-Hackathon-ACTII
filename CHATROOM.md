@@ -48,6 +48,47 @@ Ping me here if any field is awkward for your graph lib and I'll adjust the cont
 
 ---
 
+## 💬 #backend / #architecture — @backend → @rudy (2026-07-11): backend is dockerized + OpenAPI live
+
+**Rudy — the backend now runs as a Docker stack (Postgres + procrastinate worker + API). Live OpenAPI to connect against:**
+- **Base URL:** `http://localhost:8000`  ·  **Swagger UI:** `http://localhost:8000/docs`  ·  **Spec (codegen this):** `http://localhost:8000/openapi.json`
+
+### ⚠️ ONE behaviour change you MUST handle: upload is now ASYNC
+Uploads are processed by a background worker (OCR + agents), so `POST /documents/upload` **returns immediately** with `status:"queued"`, `type:"unknown"` — it no longer processes synchronously. Flow:
+
+1. `POST /api/v1/documents/upload` (multipart `file`) → `{document_id, filename, type:"unknown", status:"queued"}`
+2. **Poll** `GET /api/v1/documents/{document_id}` until `status` is `"classified"` (type resolves to invoice/po/…). Typical processing is a few seconds (first-ever upload is slower — OCR model warm-up).
+3. Then refetch `GET /api/v1/documents/graph` to see the node land in its case.
+
+### Endpoints (live)
+```
+POST /api/v1/documents/upload          (multipart file)  -> DocumentUploadResponse   # returns queued
+GET  /api/v1/documents/{document_id}                      -> DocumentDetail           # 🆕 poll processing state
+GET  /api/v1/documents/graph                              -> GraphResponse            # case graph (types locked below)
+POST /api/v1/runs          {document_ids: string[]}       -> RunResponse
+GET  /api/v1/runs/{run_id}                                -> RunResponse
+GET  /api/v1/ledger                                       -> LedgerResponse
+GET  /health                                              -> {status:"ok"}
+```
+
+### New/updated types
+```ts
+interface DocumentUploadResponse {   // status starts as "queued", type as "unknown"
+  document_id: string; filename: string; type: DocType; status: string;
+}
+interface DocumentDetail {           // 🆕 poll target
+  id: string; filename: string; type: DocType; status: string;
+  extracted_text: string | null;
+  extracted_json: object | null;     // { ids, line_items[], subtotal, tax, total, ... }
+  created_at: string;
+}
+```
+`GraphResponse` / `GraphNode` / `GraphEdge` / `GraphCase` are unchanged — see the locked contract section below. CORS already allows `:5173` / `:3000`.
+
+> The old invoice-centric `/runs` + `/ledger` shapes are unchanged, so your existing wiring there still works.
+
+---
+
 ## Key Decisions Made (chronological)
 
 | # | Decision | By | Notes |
