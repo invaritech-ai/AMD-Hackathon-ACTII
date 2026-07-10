@@ -28,6 +28,26 @@
 
 ---
 
+## 💬 #frontend / #architecture — @backend → @rudy (2026-07-10, slice 3)
+
+**Rudy — new deliverable: the Case Graph view. Contract is LOCKED (see `GraphResponse` in the contract section below).**
+
+We're adding a graph visualization: **files = nodes, auto-linked into "cases"**. Pitch = "drop in loose documents, they self-organise into cases." This is a headline demo moment. Backend endpoint is **LIVE now**: `GET /api/v1/documents/graph`.
+
+What to build (**F-007**):
+1. **Force-directed graph** — `react-force-graph-2d` or `reactflow`, your call. Node = document (label `filename`, color by `type` — 5 types). Edge = shared id (tooltip = `shared_ids`).
+2. **Group nodes visually by `case_id`** (hull / colored zone / halo). Make the cases obvious — that's the whole story.
+3. **Upload → refetch `/documents/graph`.** New nodes should snap into their case live. That re-org is the money shot.
+4. **Attach/detach affordance — CLIENT-SIDE only this pass.** Wire drag + a manual link/unlink gesture, keep overrides in local React state. **Do NOT build against a persistence API — it doesn't exist yet.** I'll add `POST /documents/{id}/case` and ping you here with the contract before you need it. Until then manual edits are ephemeral; don't block on it.
+
+Notes: graph is read-only + auto-derived; backend re-links on every GET, so just refetch after uploads. `id`/`case_id` are stable keys within a dataset. CORS for :5173/:3000 already open.
+
+Ping me here if any field is awkward for your graph lib and I'll adjust the contract before you're deep in.
+
+> ⚠️ Correction: I first dropped this in the memory-pool by mistake (nobody reads that). This `CHATROOM.md` post is the real one.
+
+---
+
 ## Key Decisions Made (chronological)
 
 | # | Decision | By | Notes |
@@ -76,6 +96,7 @@ POST /api/v1/runs               {document_ids: string[]} -> RunResponse
 GET  /api/v1/runs/{run_id}                               -> RunResponse
 GET  /api/v1/runs                                        -> RunSummary[]     ⏳
 GET  /api/v1/ledger                                      -> LedgerResponse
+GET  /api/v1/documents/graph                             -> GraphResponse   🆕 LIVE (slice 3)
 ```
 
 ### Types
@@ -126,6 +147,25 @@ interface LedgerResponse {           // LIVE
   by_supplier: { supplier_name: string; total_discrepancies: number;
                  total_claim_value: number; claims_count: number; }[];
 }
+
+// ── Case Graph (slice 3) — 🆕 LIVE ──────────────────────
+// Backend links documents deterministically by shared normalised ids
+// (invoice_number, po_number, contract_number, delivery_note_number).
+// Each connected component = a "case". Derived on every GET from current data.
+interface GraphNode {
+  id: string;            // document id (8-char) — node key
+  type: DocType;         // color the node by this
+  filename: string;      // original filename — node label
+  ids: string[];         // normalised ids this doc carries, e.g. ["INV2231","PO8890"]
+  case_id: string;       // e.g. "case-01" — cluster/hull nodes by this
+}
+interface GraphEdge {
+  source: string;        // document id
+  target: string;        // document id
+  shared_ids: string[];  // id(s) linking them, e.g. ["PO8890"] — edge label
+}
+interface GraphCase { case_id: string; document_ids: string[]; shared_ids: string[]; }
+interface GraphResponse { nodes: GraphNode[]; edges: GraphEdge[]; cases: GraphCase[]; }
 ```
 
 **Flow:** Upload each file → collect `document_id`s → `POST /runs {document_ids}` → **poll** `GET /runs/{id}` until `status` is `completed`/`failed`. Drive stepper off `agents[]`.
@@ -153,6 +193,7 @@ interface LedgerResponse {           // LIVE
 - **F-004:** Connect LedgerRoute to `GET /api/v1/runs`
 - **F-005:** End-to-end test against running backend
 - **F-006:** Record demo video + prepare submission
+- **F-007:** 🆕 Case Graph view — force-directed graph off `GET /documents/graph`, nodes grouped by `case_id`, client-side attach/detach (see @backend post above)
 
 ---
 
