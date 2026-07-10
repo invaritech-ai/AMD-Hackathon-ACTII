@@ -1,0 +1,53 @@
+{
+  "FreshSupply Co": {
+    "supplier": "FreshSupply Co",
+    "products": [
+      {
+        "name": "Beef Chuck Roll (kg)",
+        "contracted_price": 12.0
+      },
+      {
+        "name": "Chicken Breast (kg)",
+        "contracted_price": 8.5
+      },
+      {
+        "name": "Atlantic Salmon (kg)",
+        "contracted_price": 22.0
+      }
+    ]
+  },
+  "Zampa Fish Supplies": {
+    "supplier": "Zampa Fish Supplies",
+    "products": [
+      {
+        "name": "Fresh Cod Fillet (kg)",
+        "contracted_price": 18.0
+      },
+      {
+        "name": "Basa Fillet (kg)",
+        "contracted_price": 9.5
+      },
+      {
+        "name": "Tiger Prawns (kg)",
+        "contracted_price": 28.0
+      }
+    ]
+  },
+  "Enclave Studios": {
+    "supplier": "Enclave Studios",
+    "products": [
+      {
+        "name": "Brand Identity Design",
+        "contracted_price": 4500.0
+      },
+      {
+        "name": "UI/UX Design (pages)",
+        "contracted_price": 350.0
+      },
+      {
+        "name": "Animation Assets",
+        "contracted_price": 600.0
+      }
+    ]
+  }
+}

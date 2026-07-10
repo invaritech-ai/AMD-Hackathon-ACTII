@@ -1,0 +1,24 @@
+po_number,supplier,invoice_ref,item_desc,qty,unit_price,total
+PO-2026-001,TechVendor Co,INV-00009,Cloud Infrastructure,1,8000.00,8000.00
+PO-2026-001,TechVendor Co,INV-00009,DevOps Support (hours),40,95.00,3800.00
+PO-2026-002,Enclave Studios,INV-00010,Brand Identity Design,1,4500.00,4500.00
+PO-2026-002,Enclave Studios,INV-00010,UI/UX Design (pages),12,350.00,4200.00
+PO-2026-002,Enclave Studios,INV-00010,Animation Assets,5,600.00,3000.00
+PO-2026-003,FreshSupply Co,INV-00011,Beef Chuck Roll (kg),500,12.00,6000.00
+PO-2026-003,FreshSupply Co,INV-00011,Chicken Breast (kg),300,8.50,2550.00
+PO-2026-003,FreshSupply Co,INV-00011,Atlantic Salmon (kg),150,22.00,3300.00
+PO-2026-004,PrintWorks Ltd,INV-00013,Premium Brochure (qty 5000),5000,1.20,6000.00
+PO-2026-004,PrintWorks Ltd,INV-00013,Business Cards (qty 2000),2000,0.15,300.00
+PO-2026-005,LogisticsPro,INV-00014,Cold Chain Transport,1,2800.00,2800.00
+PO-2026-005,LogisticsPro,INV-00014,Warehouse Storage (days),30,85.00,2550.00
+PO-2026-006,MarketIntel Analytics,INV-00015,Consumer Survey (responses),1200,3.50,4200.00
+PO-2026-006,MarketIntel Analytics,INV-00015,Competitive Analysis Report,1,6500.00,6500.00
+PO-2026-007,Zampa Fish Supplies,INV-00016,Fresh Cod Fillet (kg),200,18.00,3600.00
+PO-2026-007,Zampa Fish Supplies,INV-00016,Basa Fillet (kg),300,9.50,2850.00
+PO-2026-007,Zampa Fish Supplies,INV-00016,Tiger Prawns (kg),100,28.00,2800.00
+PO-2026-008,GlobalSpice Traders,INV-00017,Black Peppercorns (kg),50,15.00,750.00
+PO-2026-008,GlobalSpice Traders,INV-00017,Cumin Seeds (kg),40,12.00,480.00
+PO-2026-009,PackRight Solutions,INV-00018,Corrugated Boxes (unit),10000,0.45,4500.00
+PO-2026-009,PackRight Solutions,INV-00018,Bubble Wrap Roll,50,35.00,1750.00
+PO-2026-010,CleanPro Services,INV-00019,Industrial Cleaning,1,2200.00,2200.00
+PO-2026-010,CleanPro Services,INV-00019,Sanitization Supplies,1,850.00,850.00
