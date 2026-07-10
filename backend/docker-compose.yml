@@ -1,0 +1,21 @@
+services:
+  api:
+    image: claims-recovery-backend
+    build: .
+    env_file:
+      - .env
+    environment:
+      PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK: "True"
+    ports:
+      - "8000:8000"
+    volumes:
+      # Live-mount source for dev reload and share the data dir with the host.
+      - ./src:/app/src
+      - ./data:/app/data
+      # Persist paddle's downloaded models so they aren't re-fetched on every start.
+      - paddle-models:/home/appuser/.paddlex
+    command: >
+      uvicorn claims_recovery.main:app --host 0.0.0.0 --port 8000 --reload
+
+volumes:
+  paddle-models:
