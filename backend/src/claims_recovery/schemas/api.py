@@ -33,6 +33,34 @@ class DocumentDetail(BaseModel):
     model_config = {"from_attributes": True}
 
 
+# ── Case graph (slice 3) ──────────────────────────────
+
+class GraphNode(BaseModel):
+    id: str                       # document id
+    type: DocumentType
+    filename: str
+    ids: list[str]                # normalised ids this document carries
+    case_id: str
+
+
+class GraphEdge(BaseModel):
+    source: str                   # document id
+    target: str                   # document id
+    shared_ids: list[str]         # normalised ids that link source & target
+
+
+class GraphCase(BaseModel):
+    case_id: str
+    document_ids: list[str]
+    shared_ids: list[str]
+
+
+class GraphResponse(BaseModel):
+    nodes: list[GraphNode] = Field(default_factory=list)
+    edges: list[GraphEdge] = Field(default_factory=list)
+    cases: list[GraphCase] = Field(default_factory=list)
+
+
 # ── Invoice ───────────────────────────────────────────
 
 class LineItemResponse(BaseModel):

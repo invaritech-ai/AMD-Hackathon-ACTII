@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from claims_recovery.config import settings
 from claims_recovery.database import get_db
 from claims_recovery.models.document import Document
-from claims_recovery.schemas.api import DocumentUploadResponse
+from claims_recovery.schemas.api import DocumentUploadResponse, GraphResponse
 from claims_recovery.services.document_service import process_document
 from claims_recovery.services.ingestion import SUPPORTED_SUFFIXES, is_supported
 from claims_recovery.services.linker import build_graph
@@ -57,8 +57,8 @@ async def upload_document(
     )
 
 
-@router.get("/graph")
-async def document_graph(session: AsyncSession = Depends(get_db)) -> dict:
+@router.get("/graph", response_model=GraphResponse)
+async def document_graph(session: AsyncSession = Depends(get_db)) -> GraphResponse:
     """Case graph over all documents: nodes=docs, edges=shared ids (slice 3)."""
     result = await session.execute(select(Document))
     docs = [
@@ -70,4 +70,4 @@ async def document_graph(session: AsyncSession = Depends(get_db)) -> dict:
         }
         for d in result.scalars()
     ]
-    return build_graph(docs)
+    return GraphResponse.model_validate(build_graph(docs))
