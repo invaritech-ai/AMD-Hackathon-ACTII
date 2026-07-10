@@ -15,7 +15,8 @@ services:
       timeout: 3s
       retries: 10
 
-  # One-shot: create procrastinate's own tables, then exit. api/worker wait on it.
+  # One-shot: apply Alembic migrations (our tables) + procrastinate's schema,
+  # then exit. api/worker wait on it.
   migrate:
     image: claims-recovery-backend
     build: .
@@ -24,10 +25,10 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    # ponytail: `|| true` swallows "already applied" on repeat `up`. Fine for the
-    # demo; swap to Alembic-managed migrations when the schema starts evolving.
+    # alembic must succeed; procrastinate `|| true` tolerates re-apply on repeat up.
     command: >
-      sh -c "procrastinate --app=claims_recovery.procrastinate_app.app schema --apply || true"
+      sh -c "alembic upgrade head &&
+             (procrastinate --app=claims_recovery.procrastinate_app.app schema --apply || true)"
     restart: "no"
 
   api:

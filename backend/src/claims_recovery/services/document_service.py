@@ -49,6 +49,10 @@ async def run_pipeline(session: AsyncSession, document: Document) -> Document:
         document.extracted_json = json.dumps(fields)
         # Deterministic arithmetic check — figures reconcile? (slice 2)
         document.verification_json = json.dumps(verify_arithmetic(fields))
+        # Promote a few figures to columns for cross-document reconciliation.
+        document.total = fields.get("total") or None
+        document.currency = fields.get("currency") or None
+        document.doc_date = fields.get("invoice_date") or None
         document.status = "classified"
 
     if document.type == DocumentType.INVOICE and fields:

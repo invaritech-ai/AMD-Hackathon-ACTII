@@ -32,6 +32,8 @@ RUN useradd --create-home --shell /bin/bash appuser \
 
 COPY --chown=appuser:appuser src ./src
 COPY --chown=appuser:appuser tests ./tests
+COPY --chown=appuser:appuser alembic ./alembic
+COPY --chown=appuser:appuser alembic.ini ./alembic.ini
 
 USER appuser
 

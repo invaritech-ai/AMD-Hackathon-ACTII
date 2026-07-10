@@ -8,15 +8,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from claims_recovery.database import engine
-from claims_recovery.models.base import Base
 from claims_recovery.routers import documents, ledger, runs
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
+    # Schema is owned by Alembic (see the `migrate` compose service), not create_all.
     # Open the procrastinate pool so request handlers can defer jobs to the worker.
     from claims_recovery.procrastinate_app import app as procrastinate_app
 
