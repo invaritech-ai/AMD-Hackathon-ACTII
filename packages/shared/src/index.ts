@@ -9,6 +9,16 @@ export interface DocumentUploadResponse {
   status: string;
 }
 
+export interface DocumentDetail {
+  id: string;
+  filename: string;
+  type: DocType;
+  status: string;
+  extracted_text: string | null;
+  extracted_json: Record<string, unknown> | null;
+  created_at: string;
+}
+
 export type AgentId = "agent1_ocr" | "agent2_po_match" | "agent3_contract" | "agent4_aggregate" | "agent5_claims";
 
 export type AgentStatusValue = "pending" | "running" | "completed" | "skipped" | "failed";

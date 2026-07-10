@@ -1,5 +1,6 @@
 import type {
   DocumentUploadResponse,
+  DocumentDetail,
   RunResponse,
   RunSummary,
   LedgerResponse,
@@ -44,6 +45,9 @@ export const api = {
     }
     return res.json();
   },
+
+  getDocument: (documentId: string): Promise<DocumentDetail> =>
+    request<DocumentDetail>(`/documents/${documentId}`),
 
   createRun: (documentIds: string[]): Promise<RunResponse> =>
     request<RunResponse>("/runs", {
