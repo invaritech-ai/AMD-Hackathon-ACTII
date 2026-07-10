@@ -32,5 +32,16 @@ class Settings(BaseSettings):
     model_contract_validator: str = "accounts/fireworks/models/deepseek-r1"
     model_claim_drafter: str = "accounts/fireworks/models/llama-v3p1-70b-instruct"
 
+    @property
+    def use_queue(self) -> bool:
+        """Postgres => process uploads on the procrastinate worker. SQLite
+        (tests / no-docker local) => process inline in the request."""
+        return self.database_url.startswith("postgresql")
+
+    @property
+    def procrastinate_dsn(self) -> str:
+        # procrastinate speaks psycopg3; drop SQLAlchemy's async driver suffix.
+        return self.database_url.replace("+asyncpg", "")
+
 
 settings = Settings()

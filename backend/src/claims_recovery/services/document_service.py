@@ -17,21 +17,21 @@ from claims_recovery.services.ingestion import extract_markdown
 from claims_recovery.services.verifier import verify_arithmetic
 
 
-async def process_document(
-    session: AsyncSession,
-    file_path: Path,
-    original_filename: str,
-) -> Document:
-    document = Document(
-        filename=file_path.name,
-        original_filename=original_filename,
-        file_path=str(file_path.absolute()),
-        type=DocumentType.UNKNOWN,
-        status="uploaded",
-    )
-    session.add(document)
-    await session.commit()
-    await session.refresh(document)
+async def process_document_by_id(session: AsyncSession, document_id: str) -> None:
+    """Worker entry point (procrastinate): load a queued row and run the pipeline."""
+    document = await session.get(Document, document_id)
+    if document is not None:
+        await run_pipeline(session, document)
+
+
+async def run_pipeline(session: AsyncSession, document: Document) -> Document:
+    """OCR -> classify -> extract -> verify on an already-persisted document row.
+
+    Runs inline (SQLite/tests) or on the worker (Postgres); the caller owns row
+    creation so the upload response can return before this heavy work finishes.
+    """
+    file_path = Path(document.file_path)
+    original_filename = document.original_filename
 
     # Extract Markdown (tables preserved) off the event loop — OCR is CPU-bound.
     extracted_text = await to_thread.run_sync(extract_markdown, file_path)

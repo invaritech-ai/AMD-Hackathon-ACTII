@@ -10,7 +10,7 @@ export function useClaims(runId: string | undefined) {
 
   return {
     ...query,
-    data: query.data?.claim ?? null,
-    run: query.data,
+    data: query.data?.claims?.[0] ?? null,
+    run: query.data ?? null,
   };
 }

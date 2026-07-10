@@ -18,15 +18,15 @@ interface ClaimTimelineProps {
 export function ClaimTimeline({ runs }: ClaimTimelineProps) {
   const data = useMemo(() => {
     const sorted = [...runs]
-      .filter((r) => r.status === "done")
-      .sort((a, b) => new Date(a.uploaded_at).getTime() - new Date(b.uploaded_at).getTime());
+      .filter((r) => r.status === "completed" || r.status === "done")
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
     let cumulative = 0;
     return sorted.map((r) => {
-      cumulative += r.total_claim_value;
+      cumulative += r.total_claim_value ?? 0;
       return {
-        date: new Date(r.uploaded_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-        value: r.total_claim_value,
+        date: new Date(r.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        value: r.total_claim_value ?? 0,
         cumulative: Math.round(cumulative * 100) / 100,
       };
     });
@@ -57,43 +57,10 @@ export function ClaimTimeline({ runs }: ClaimTimelineProps) {
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-            <XAxis
-              dataKey="date"
-              stroke="var(--color-foreground-subtle)"
-              fontSize={10}
-              fontFamily="Fira Code, ui-monospace, monospace"
-              tick={{ fill: "var(--color-foreground)" }}
-            />
-            <YAxis
-              stroke="var(--color-foreground-subtle)"
-              fontSize={10}
-              fontFamily="Fira Code, ui-monospace, monospace"
-              tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
-              tick={{ fill: "var(--color-foreground)" }}
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "var(--color-surface)",
-                border: "1px solid var(--color-border)",
-                color: "var(--color-foreground)",
-                fontSize: "12px",
-                fontFamily: "Fira Code, monospace",
-                borderRadius: "4px",
-              }}
-              formatter={(value: number, name: string) => [
-                `$${value.toFixed(2)}`,
-                name === "cumulative" ? "Cumulative" : "Claim Value",
-              ]}
-            />
-            <Area
-              type="monotone"
-              dataKey="cumulative"
-              stroke="#8B5CF6"
-              strokeWidth={2}
-              fill="url(#claimGradient)"
-              dot={false}
-              activeDot={{ r: 4, fill: "#8B5CF6", stroke: "var(--color-background)", strokeWidth: 2 }}
-            />
+            <XAxis dataKey="date" stroke="var(--color-foreground-subtle)" fontSize={10} fontFamily="Fira Code, ui-monospace, monospace" tick={{ fill: "var(--color-foreground)" }} />
+            <YAxis stroke="var(--color-foreground-subtle)" fontSize={10} fontFamily="Fira Code, ui-monospace, monospace" tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} tick={{ fill: "var(--color-foreground)" }} />
+            <Tooltip contentStyle={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)", color: "var(--color-foreground)", fontSize: "12px", fontFamily: "Fira Code, monospace", borderRadius: "4px" }} formatter={(value: number, name: string) => [`$${value.toFixed(2)}`, name === "cumulative" ? "Cumulative" : "Claim Value"]} />
+            <Area type="monotone" dataKey="cumulative" stroke="#8B5CF6" strokeWidth={2} fill="url(#claimGradient)" dot={false} activeDot={{ r: 4, fill: "#8B5CF6", stroke: "var(--color-background)", strokeWidth: 2 }} />
           </AreaChart>
         </ResponsiveContainer>
       </CardContent>

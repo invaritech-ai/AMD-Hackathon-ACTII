@@ -37,7 +37,6 @@ export function DiscrepancyDetail({ discrepancies }: DiscrepancyDetailProps) {
             <div className="flex gap-2">
               <Badge variant={severityVariant(d.severity)}>{d.severity}</Badge>
               <Badge variant="neutral">{d.discrepancy_type.replace("_", " ")}</Badge>
-              <Badge variant="info">{d.status}</Badge>
             </div>
           </div>
 
@@ -47,7 +46,7 @@ export function DiscrepancyDetail({ discrepancies }: DiscrepancyDetailProps) {
                 EXPECTED
               </p>
               <p className="text-lg font-[var(--font-mono)] text-[var(--color-foreground)]">
-                {d.expected_quantity > 0 ? `${d.expected_quantity} × $${d.expected_unit_price.toFixed(2)}` : "N/A"}
+                {(d.expected_quantity ?? 0) > 0 ? `${d.expected_quantity} × $${(d.expected_unit_price ?? 0).toFixed(2)}` : "N/A"}
               </p>
             </div>
             <div className="border border-[var(--color-destructive)]/20 p-5 space-y-2">
@@ -55,7 +54,7 @@ export function DiscrepancyDetail({ discrepancies }: DiscrepancyDetailProps) {
                 ACTUAL (INVOICE)
               </p>
               <p className="text-lg font-[var(--font-mono)] text-[var(--color-destructive)]">
-                {d.actual_quantity > 0 ? `${d.actual_quantity} × $${d.actual_unit_price.toFixed(2)}` : "N/A"}
+                {(d.actual_quantity ?? 0) > 0 ? `${d.actual_quantity} × $${(d.actual_unit_price ?? 0).toFixed(2)}` : "N/A"}
               </p>
             </div>
           </div>

@@ -6,6 +6,7 @@ import { UploadRoute } from "./routes/UploadRoute";
 import { DiscrepanciesRoute } from "./routes/DiscrepanciesRoute";
 import { ClaimsRoute } from "./routes/ClaimsRoute";
 import { LedgerRoute } from "./routes/LedgerRoute";
+import { GraphRoute } from "./routes/GraphRoute";
 
 export function App() {
   const toasts = useToastStore((state) => state.toasts);
@@ -15,6 +16,7 @@ export function App() {
     <Layout>
       <Routes>
         <Route path="/" element={<UploadRoute />} />
+        <Route path="/graph" element={<GraphRoute />} />
         <Route path="/discrepancies" element={<DiscrepanciesRoute />} />
         <Route path="/discrepancies/:runId" element={<DiscrepanciesRoute />} />
         <Route path="/claims" element={<ClaimsRoute />} />

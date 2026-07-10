@@ -9,7 +9,7 @@ export function UploadRoute() {
         title="Claims Recovery Engine"
         label="Pipeline"
         labelColor="bg-[var(--color-primary)]"
-        description="Upload supplier invoices. AI agents cross-reference against purchase orders and pricing contracts to surface discrepancies and draft recovery claims."
+        description="Drop PDF, images, and spreadsheets. AI agents cross-reference against purchase orders and pricing contracts to surface discrepancies and draft recovery claims."
       />
       <UploadPanel />
     </PageContainer>

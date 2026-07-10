@@ -12,7 +12,7 @@ import type { RunSummary } from "@claims/shared";
 export function LedgerRoute() {
   const { data, isLoading, isError } = useLedger();
   const navigate = useNavigate();
-  const runs: RunSummary[] = data?.runs ?? [];
+  const runs: RunSummary[] = data ?? [];
 
   return (
     <PageContainer>

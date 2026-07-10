@@ -1,14 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import type { RunResponse } from "@claims/shared";
 
 export function useRunStatus(runId: string | undefined) {
-  return useQuery({
+  return useQuery<RunResponse>({
     queryKey: ["run", runId],
     queryFn: () => api.getRun(runId!),
     enabled: !!runId,
     refetchInterval: (query) => {
-      const data = query.state.data;
-      if (data?.status === "processing") return 2000;
+      if (query.state.data?.status === "running" || query.state.data?.status === "pending") {
+        return 2000;
+      }
       return false;
     },
   });

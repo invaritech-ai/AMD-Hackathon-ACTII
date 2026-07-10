@@ -213,4 +213,77 @@ interface GraphResponse { nodes: GraphNode[]; edges: GraphEdge[]; cases: GraphCa
 
 ---
 
-*War room compacted at 2026-07-10. Original 777 lines → 153 lines. Full session history preserved in session store.*
+## 🟢 2026-07-10 — Frontend Checkpoint (Rudy)
+
+### `@rudy` [18:30] — ✅ Frontend wired against locked contract (F-001 to F-007)
+
+**All frontend tasks complete.** ReactFlow app shell connected against the locked API contract.
+
+#### Files delivered
+
+| File | What |
+|------|------|
+| `packages/shared/src/index.ts` | Full type lock: `DocType`, `AgentStatus`, `Discrepancy`, `RecoveryClaim`, `RunResponse`, `RunSummary`, `LedgerResponse`, `GraphNode/Edge/Case/Response` |
+| `frontend/src/lib/api.ts` | Wired to all 6 endpoints (`documents/upload`, `runs`, `runs/{id}`, `ledger`, `documents/graph`) |
+| `frontend/src/hooks/useUpload.ts` | Two-step flow: upload each file → collect `document_ids` → `POST /runs` → `run_id` |
+| `frontend/src/hooks/useRunStatus.ts` | Polls `GET /runs/{id}` while `status` is `"running"` or `"pending"` |
+| `frontend/src/hooks/useDiscrepancies.ts` | Extracts `discrepancies[]` from `RunResponse` |
+| `frontend/src/hooks/useClaims.ts` | Extracts `claims[0]` from `RunResponse` |
+| `frontend/src/hooks/useLedger.ts` | `GET /api/v1/runs` → `RunSummary[]` |
+| `frontend/src/hooks/useGraph.ts` | `GET /api/v1/documents/graph` → `GraphResponse` |
+| `frontend/src/components/CaseGraph.tsx` | ReactFlow graph: nodes colored by `DocType`, cases shown as halos, client-side connect, `upload → refetch` flow ready |
+| `frontend/src/routes/GraphRoute.tsx` | New route at `/graph` with `GitBranch` nav icon |
+| `frontend/src/components/PipelineStepper.tsx` | Updated for new agent statuses (`completed`/`failed`/`running`/`pending`) |
+| `frontend/src/routes/ClaimsRoute.tsx` | Switched `claim_text` → `draft_text`, uses `run.discrepancies` |
+| `frontend/src/routes/DiscrepanciesRoute.tsx` | Handles nullable fields (`expected_quantity`, `expected_unit_price`, etc.) |
+| `frontend/src/routes/LedgerRoute.tsx` | Uses `RunSummary[]` directly |
+| `frontend/src/App.tsx` | `/graph` route added |
+| `frontend/src/components/Layout.tsx` | Graph nav item with `GitBranch` icon |
+
+#### Shape alignment verified
+
+| Field | Old | New (locked) | Status |
+|-------|-----|-------------|--------|
+| Agent status | `done`/`processing`/`error` | `completed`/`running`/`failed`/`pending`/`skipped` | ✅ mapped |
+| Claim text | `claim_text` | `draft_text` | ✅ updated |
+| Run status | `done`/`error` | `completed`/`failed`/`running`/`pending` | ✅ updated |
+| Run.claims | `RecoveryClaim \| null` | `RecoveryClaim[]` | ✅ array |
+| RunSummary | `runs[].uploaded_at` | `runs[].created_at` | ✅ updated |
+| Nullable fields | assumed non-null | `quantity`, `unit_price`, `supplier_name`, `invoice_number` all nullable | ✅ guarded |
+
+#### Backend connection status
+
+| Endpoint | Frontend | Backend | Note |
+|----------|----------|---------|------|
+| `POST /documents/upload` | ✅ Wired | 🔴 Server crash (sync/async SQLite) | Docker starts but `pysqlite` / `aiosqlite` mismatch — backend WIP |
+| `POST /runs` | ✅ Wired | 🔴 | |
+| `GET /runs/{id}` | ✅ Wired | 🔴 | |
+| `GET /runs` | ✅ Wired | 🔴 | |
+| `GET /ledger` | ✅ Wired | 🔴 | |
+| `GET /documents/graph` | ✅ Wired | 🔴 | |
+
+#### What's needed from Jude
+
+```
+sqlalchemy.exc.InvalidRequestError: The asyncio extension requires an async driver
+to be used. The loaded 'pysqlite' is not async.
+```
+
+Need database URL switched from `pysqlite` to `aiosqlite` in `claims_recovery/database.py`.
+
+#### Build
+
+```
+✅ pnpm build — all clean
+✅ CSS: 45.13 kB (includes ReactFlow styles)
+✅ JS: 899.06 kB
+✅ No TypeScript errors
+```
+
+Ready to connect as soon as Jude fixes the DB driver.
+
+— Rudy
+
+---
+
+*War room checkpoint at 2026-07-10 18:30. Frontend fully wired against locked contract.*

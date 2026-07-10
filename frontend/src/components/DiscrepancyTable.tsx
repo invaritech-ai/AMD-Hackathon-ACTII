@@ -95,12 +95,12 @@ export function DiscrepancyTable({ discrepancies }: DiscrepancyTableProps) {
               </TableCell>
               <TableCell>
                 <span className={cn(dataValueClass, "group-hover:text-[var(--color-foreground)] transition-colors")}>
-                  {d.expected_quantity > 0 ? `${d.expected_quantity} × $${d.expected_unit_price.toFixed(2)}` : "—"}
+                  {(d.expected_quantity ?? 0) > 0 ? `${d.expected_quantity} × $${(d.expected_unit_price ?? 0).toFixed(2)}` : "—"}
                 </span>
               </TableCell>
               <TableCell>
                 <span className={cn(dataValueClass, "group-hover:text-[var(--color-foreground)] transition-colors")}>
-                  {d.actual_quantity > 0 ? `${d.actual_quantity} × $${d.actual_unit_price.toFixed(2)}` : "—"}
+                  {(d.actual_quantity ?? 0) > 0 ? `${d.actual_quantity} × $${(d.actual_unit_price ?? 0).toFixed(2)}` : "—"}
                 </span>
               </TableCell>
               <TableCell className="text-right">

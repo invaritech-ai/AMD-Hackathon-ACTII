@@ -11,6 +11,6 @@ export function useDiscrepancies(runId: string | undefined) {
   return {
     ...query,
     data: query.data?.discrepancies ?? [],
-    run: query.data,
+    run: query.data ?? null,
   };
 }

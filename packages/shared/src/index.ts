@@ -1,69 +1,132 @@
-export interface LineItem {
-  description: string;
-  quantity: number;
-  unit: string;
-  unit_price: number;
-  line_total: number;
-  tax_rate?: number;
+// ── Locked API Contract Types ──
+
+export type DocType = "invoice" | "purchase_order" | "contract" | "delivery_docket" | "unknown";
+
+export interface DocumentUploadResponse {
+  document_id: string;
+  filename: string;
+  type: DocType;
+  status: string;
 }
+
+export type AgentId = "agent1_ocr" | "agent2_po_match" | "agent3_contract" | "agent4_aggregate" | "agent5_claims";
+
+export type AgentStatusValue = "pending" | "running" | "completed" | "skipped" | "failed";
+
+export interface AgentStatus {
+  agent_id: AgentId;
+  name: string;
+  status: AgentStatusValue;
+  started_at: string | null;
+  completed_at: string | null;
+  output?: unknown;
+}
+
+export type DiscrepancyType =
+  | "PRICE_MISMATCH"
+  | "QTY_MISMATCH"
+  | "UNAUTHORIZED_CHARGE"
+  | "DUPLICATE"
+  | "OVERCHARGE"
+  | "UNDERCHARGE";
+
+export type Severity = "LOW" | "MEDIUM" | "HIGH";
 
 export interface Discrepancy {
   invoice_number: string;
-  po_number: string;
+  po_number: string | null;
   item_description: string;
-  expected_quantity: number;
-  actual_quantity: number;
-  expected_unit_price: number;
-  actual_unit_price: number;
+  expected_quantity: number | null;
+  actual_quantity: number | null;
+  expected_unit_price: number | null;
+  actual_unit_price: number | null;
   difference_amount: number;
-  discrepancy_type: "OVERCHARGE" | "UNDERCHARGE" | "QTY_MISMATCH" | "DUPLICATE" | "PRICE_MISMATCH" | "UNAUTHORIZED_CHARGE";
-  severity: "LOW" | "MEDIUM" | "HIGH";
-  status: "OPEN" | "DRAFTING_CLAIM" | "CLAIM_SUBMITTED";
-  explanation?: string;
+  discrepancy_type: DiscrepancyType;
+  severity: Severity;
+  explanation: string | null;
 }
+
+export type ClaimStatus = "DRAFT" | "SUBMITTED" | "ACCEPTED" | "PAID";
 
 export interface RecoveryClaim {
   claim_number: string;
   invoice_number: string;
-  po_number: string;
-  discrepancies: Discrepancy[];
+  po_number: string | null;
   total_claim_amount: number;
-  claim_date: string;
-  retailer_ref?: string;
-  status: "DRAFT" | "SUBMITTED" | "ACCEPTED" | "PAID";
-  claim_text?: string;
+  draft_text: string | null;
+  claim_date: string | null;
+  status: ClaimStatus;
 }
 
-export interface AgentStatus {
-  agent_id: number;
-  name: string;
-  status: "pending" | "processing" | "done" | "error";
-  started_at?: string;
-  completed_at?: string;
-  error?: string;
-}
+export type RunStatus = "pending" | "running" | "completed" | "failed";
 
-export interface PipelineRun {
+export interface RunResponse {
   id: string;
-  invoice_number: string;
-  supplier_name: string;
-  status: "processing" | "done" | "error";
+  status: RunStatus;
+  progress_pct: number;
+  invoice_number: string | null;
+  supplier_name: string | null;
+  total_discrepancies: number | null;
+  total_claim_value: number | null;
   agents: AgentStatus[];
   discrepancies: Discrepancy[];
-  claim: RecoveryClaim | null;
-  uploaded_at: string;
-  completed_at?: string;
+  claims: RecoveryClaim[];
+  created_at: string;
+  error_message: string | null;
 }
 
 export interface RunSummary {
   id: string;
-  invoice_number: string;
+  status: string;
+  invoice_number: string | null;
+  supplier_name: string | null;
+  total_discrepancies: number | null;
+  total_claim_value: number | null;
+  created_at: string;
+}
+
+export interface LedgerEntry {
   supplier_name: string;
-  status: "processing" | "done" | "error";
   total_discrepancies: number;
   total_claim_value: number;
-  uploaded_at: string;
+  claims_count: number;
 }
+
+export interface LedgerResponse {
+  total_claims: number;
+  total_claim_value: number;
+  by_supplier: LedgerEntry[];
+}
+
+// ── Case Graph (slice 3) ──
+
+export interface GraphNode {
+  id: string;
+  type: DocType;
+  filename: string;
+  ids: string[];
+  case_id: string;
+}
+
+export interface GraphEdge {
+  source: string;
+  target: string;
+  shared_ids: string[];
+}
+
+export interface GraphCase {
+  case_id: string;
+  document_ids: string[];
+  shared_ids: string[];
+}
+
+export interface GraphResponse {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+  cases: GraphCase[];
+}
+
+// ── Upload (legacy compat) ──
 
 export interface UploadResponse {
   run_id: string;
@@ -72,3 +135,10 @@ export interface UploadResponse {
 export interface RunsResponse {
   runs: RunSummary[];
 }
+
+// ── Deprecated — removed from contract ──
+
+/** @deprecated Use DocType */
+export type DocumentType = DocType;
+/** @deprecated Use ClaimStatus */
+export type ClaimStatusLegacy = ClaimStatus;

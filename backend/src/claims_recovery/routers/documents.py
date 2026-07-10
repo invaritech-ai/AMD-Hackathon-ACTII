@@ -11,9 +11,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from claims_recovery.config import settings
 from claims_recovery.database import get_db
-from claims_recovery.models.document import Document
-from claims_recovery.schemas.api import DocumentUploadResponse, GraphResponse
-from claims_recovery.services.document_service import process_document
+from claims_recovery.models.document import Document, DocumentType
+from claims_recovery.schemas.api import (
+    DocumentDetail,
+    DocumentUploadResponse,
+    GraphResponse,
+)
+from claims_recovery.services.document_service import run_pipeline
 from claims_recovery.services.ingestion import SUPPORTED_SUFFIXES, is_supported
 from claims_recovery.services.linker import build_graph
 
@@ -43,11 +47,27 @@ async def upload_document(
         content = await file.read()
         f.write(content)
 
-    document = await process_document(
-        session=session,
-        file_path=file_path,
+    document = Document(
+        filename=file_path.name,
         original_filename=file.filename,
+        file_path=str(file_path.absolute()),
+        type=DocumentType.UNKNOWN,
+        status="queued",
     )
+    session.add(document)
+    await session.commit()
+    await session.refresh(document)
+
+    if settings.use_queue:
+        # Postgres: hand off to the procrastinate worker, return immediately.
+        # type/status stay unknown/queued until the worker finishes — poll
+        # GET /documents/{id} (or the graph) to see them resolve.
+        from claims_recovery.tasks import process_document_task
+
+        await process_document_task.defer_async(document_id=document.id)
+    else:
+        # SQLite/tests: no worker running, so process inline before responding.
+        await run_pipeline(session, document)
 
     return DocumentUploadResponse(
         document_id=document.id,
@@ -71,3 +91,15 @@ async def document_graph(session: AsyncSession = Depends(get_db)) -> GraphRespon
         for d in result.scalars()
     ]
     return GraphResponse.model_validate(build_graph(docs))
+
+
+# Dynamic path last so it doesn't shadow /graph.
+@router.get("/{document_id}", response_model=DocumentDetail)
+async def get_document(
+    document_id: str, session: AsyncSession = Depends(get_db)
+) -> Document:
+    """Poll a document's processing state (async upload flow)."""
+    document = await session.get(Document, document_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+    return document

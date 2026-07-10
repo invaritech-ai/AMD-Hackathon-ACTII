@@ -1,10 +1,11 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Upload, AlertTriangle, FileText, BarChart3, ChevronLeft, ChevronRight, Activity } from "lucide-react";
+import { Upload, AlertTriangle, FileText, BarChart3, ChevronLeft, ChevronRight, Activity, GitBranch } from "lucide-react";
 import { cn } from "@claims/ui";
 import { useUIStore } from "@/store/uiStore";
 
 const navItems = [
   { to: "/", label: "Pipeline", icon: Activity },
+  { to: "/graph", label: "Graph", icon: GitBranch },
   { to: "/discrepancies", label: "Discrepancies", icon: AlertTriangle },
   { to: "/claims", label: "Claims", icon: FileText },
   { to: "/ledger", label: "Ledger", icon: BarChart3 },

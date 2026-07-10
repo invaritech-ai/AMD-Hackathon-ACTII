@@ -12,7 +12,7 @@ export function ClaimsRoute() {
   const { data: claim, run, isLoading, isError } = useClaims(runId);
 
   const handleCopy = () => {
-    if (claim?.claim_text) navigator.clipboard.writeText(claim.claim_text);
+    if (claim?.draft_text) navigator.clipboard.writeText(claim.draft_text);
   };
 
   const handlePrint = () => window.print();
@@ -108,40 +108,41 @@ export function ClaimsRoute() {
               </div>
             </div>
 
-            {claim.claim_text ? (
+            {claim.draft_text ? (
               <div className="border border-[var(--color-border)] p-8">
                 <pre className="whitespace-pre-wrap font-[var(--font-mono)] text-sm leading-relaxed text-[var(--color-foreground-subtle)]">
-                  {claim.claim_text}
+                  {claim.draft_text}
                 </pre>
               </div>
             ) : (
-              <div className="space-y-3">
-                <p className="text-[10px] font-[var(--font-mono)] tracking-[0.2em] text-[var(--color-foreground-subtle)]">
-                  CLAIM LINE ITEMS
-                </p>
-                {claim.discrepancies.map((d, i) => (
-                  <div
-                    key={i}
-                    className="border border-[var(--color-border)] p-5 flex items-start justify-between hover:border-[var(--color-accent)]/20 transition-colors"
-                  >
-                    <div className="space-y-1.5">
-                      <p className="text-sm text-[var(--color-foreground)]/90">{d.item_description}</p>
-                      <p className="text-xs text-[var(--color-foreground-subtle)] font-[var(--font-mono)]">
-                        {d.discrepancy_type.replace("_", " ")} — Expected $
-                        {d.expected_unit_price.toFixed(2)} → Actual ${d.actual_unit_price.toFixed(2)}
-                      </p>
+              run && run.discrepancies.length > 0 && (
+                <div className="space-y-3">
+                  <p className="text-[10px] font-[var(--font-mono)] tracking-[0.2em] text-[var(--color-foreground-subtle)]">
+                    CLAIM LINE ITEMS
+                  </p>
+                  {run.discrepancies.map((d, i) => (
+                    <div
+                      key={i}
+                      className="border border-[var(--color-border)] p-5 flex items-start justify-between hover:border-[var(--color-accent)]/20 transition-colors"
+                    >
+                      <div className="space-y-1.5">
+                        <p className="text-sm text-[var(--color-foreground)]/90">{d.item_description}</p>
+                        <p className="text-xs text-[var(--color-foreground-subtle)] font-[var(--font-mono)]">
+                          {d.discrepancy_type.replace("_", " ")} — Expected ${(d.expected_unit_price ?? 0).toFixed(2)} → Actual ${(d.actual_unit_price ?? 0).toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="text-right space-y-1.5">
+                        <Badge variant={d.severity === "HIGH" ? "high" : d.severity === "MEDIUM" ? "medium" : "low"}>
+                          {d.severity}
+                        </Badge>
+                        <p className="text-sm font-[var(--font-mono)] text-[var(--color-destructive)] tracking-wider">
+                          +${d.difference_amount.toFixed(2)}
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-right space-y-1.5">
-                      <Badge variant={d.severity === "HIGH" ? "high" : d.severity === "MEDIUM" ? "medium" : "low"}>
-                        {d.severity}
-                      </Badge>
-                      <p className="text-sm font-[var(--font-mono)] text-[var(--color-destructive)] tracking-wider">
-                        +${d.difference_amount.toFixed(2)}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )
             )}
           </CardContent>
         </Card>

@@ -1,9 +1,18 @@
-import type { UploadResponse, PipelineRun, RunsResponse } from "@claims/shared";
+import type {
+  DocumentUploadResponse,
+  RunResponse,
+  RunSummary,
+  LedgerResponse,
+  GraphResponse,
+} from "@claims/shared";
 
-const BASE_URL = "/api";
+const BASE_URL = "/api/v1";
 
 class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(
+    public status: number,
+    message: string
+  ) {
     super(message);
     this.name = "ApiError";
   }
@@ -11,26 +20,24 @@ class ApiError extends Error {
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...options?.headers,
-    },
+    headers: { "Content-Type": "application/json", ...options?.headers },
     ...options,
   });
-
   if (!res.ok) {
     const body = await res.text();
     throw new ApiError(res.status, body || res.statusText);
   }
-
   return res.json();
 }
 
 export const api = {
-  uploadInvoice: async (files: File[]): Promise<UploadResponse> => {
+  uploadDocument: async (file: File): Promise<DocumentUploadResponse> => {
     const formData = new FormData();
-    files.forEach((f) => formData.append("files", f));
-    const res = await fetch(`${BASE_URL}/invoices`, { method: "POST", body: formData });
+    formData.append("file", file);
+    const res = await fetch(`${BASE_URL}/documents/upload`, {
+      method: "POST",
+      body: formData,
+    });
     if (!res.ok) {
       const body = await res.text();
       throw new ApiError(res.status, body || res.statusText);
@@ -38,9 +45,23 @@ export const api = {
     return res.json();
   },
 
-  getRun: (runId: string) => request<PipelineRun>(`/runs/${runId}`),
+  createRun: (documentIds: string[]): Promise<RunResponse> =>
+    request<RunResponse>("/runs", {
+      method: "POST",
+      body: JSON.stringify({ document_ids: documentIds }),
+    }),
 
-  getRuns: () => request<RunsResponse>("/runs"),
+  getRun: (runId: string): Promise<RunResponse> =>
+    request<RunResponse>(`/runs/${runId}`),
+
+  getRuns: (): Promise<RunSummary[]> =>
+    request<RunSummary[]>("/runs"),
+
+  getLedger: (): Promise<LedgerResponse> =>
+    request<LedgerResponse>("/ledger"),
+
+  getGraph: (): Promise<GraphResponse> =>
+    request<GraphResponse>("/documents/graph"),
 };
 
 export { ApiError };
