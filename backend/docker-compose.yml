@@ -1,11 +1,49 @@
 services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: claims
+      POSTGRES_PASSWORD: claims
+      POSTGRES_DB: claims
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U claims -d claims"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # One-shot: create procrastinate's own tables, then exit. api/worker wait on it.
+  migrate:
+    image: claims-recovery-backend
+    build: .
+    environment:
+      DATABASE_URL: postgresql+asyncpg://claims:claims@db:5432/claims
+    depends_on:
+      db:
+        condition: service_healthy
+    # ponytail: `|| true` swallows "already applied" on repeat `up`. Fine for the
+    # demo; swap to Alembic-managed migrations when the schema starts evolving.
+    command: >
+      sh -c "procrastinate --app=claims_recovery.procrastinate_app.app schema --apply || true"
+    restart: "no"
+
   api:
     image: claims-recovery-backend
     build: .
     env_file:
       - .env
     environment:
+      # Overrides the sqlite DATABASE_URL from .env — compose env wins over env_file.
+      DATABASE_URL: postgresql+asyncpg://claims:claims@db:5432/claims
       PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK: "True"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     ports:
       - "8000:8000"
     volumes:
@@ -17,5 +55,26 @@ services:
     command: >
       uvicorn claims_recovery.main:app --host 0.0.0.0 --port 8000 --reload
 
+  worker:
+    image: claims-recovery-backend
+    build: .
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://claims:claims@db:5432/claims
+      PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK: "True"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      - ./src:/app/src
+      - ./data:/app/data
+      - paddle-models:/home/appuser/.paddlex
+    command: >
+      procrastinate --app=claims_recovery.procrastinate_app.app worker
+
 volumes:
   paddle-models:
+  pg-data:

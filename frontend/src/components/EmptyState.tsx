@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { cn } from "@claims/ui";
 
-export type EmptyStateIcon = "pipeline" | "discrepancies" | "claims" | "ledger";
+type EmptyStateIcon = "pipeline" | "discrepancies" | "claims" | "ledger";
 
 const emptyStateIcons: Record<EmptyStateIcon, LucideIcon> = {
   pipeline: Activity,

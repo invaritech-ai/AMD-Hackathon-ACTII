@@ -63,5 +63,3 @@ export const api = {
   getGraph: (): Promise<GraphResponse> =>
     request<GraphResponse>("/documents/graph"),
 };
-
-export { ApiError };
