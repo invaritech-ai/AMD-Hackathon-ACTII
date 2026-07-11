@@ -136,7 +136,7 @@ export function CaseGraph({ graph, isLoading, isError }: CaseGraphProps) {
 
   if (isLoading) {
     return (
-      <div className="workspace-bezel flex min-h-[560px] w-full flex-col items-center justify-center gap-3 rounded-xl">
+      <div className="workspace-bezel flex min-h-[440px] w-full flex-col items-center justify-center gap-3 rounded-xl 2xl:min-h-[560px]">
         <Spinner className="h-5 w-5" />
         <p className="text-sm text-[var(--color-foreground-subtle)] font-[var(--font-mono)]">Loading graph</p>
       </div>
@@ -145,7 +145,7 @@ export function CaseGraph({ graph, isLoading, isError }: CaseGraphProps) {
 
   if (isError) {
     return (
-      <div className="workspace-bezel flex min-h-[560px] w-full items-center justify-center rounded-xl">
+      <div className="workspace-bezel flex min-h-[440px] w-full items-center justify-center rounded-xl 2xl:min-h-[560px]">
         <p className="text-sm text-[var(--color-destructive)] font-[var(--font-mono)]">Failed to load document graph.</p>
       </div>
     );
@@ -153,7 +153,7 @@ export function CaseGraph({ graph, isLoading, isError }: CaseGraphProps) {
 
   if (!graph || graph.nodes.length === 0) {
     return (
-      <div className="workspace-bezel flex min-h-[560px] w-full items-center justify-center rounded-xl">
+      <div className="workspace-bezel flex min-h-[440px] w-full items-center justify-center rounded-xl 2xl:min-h-[560px]">
         <p className="text-sm text-[var(--color-foreground-subtle)] font-[var(--font-mono)]">
           This case has no resolved documents yet.
         </p>
@@ -163,7 +163,7 @@ export function CaseGraph({ graph, isLoading, isError }: CaseGraphProps) {
 
   return (
     <>
-      <div className="workspace-bezel relative w-full overflow-hidden rounded-xl" style={{ height: 560 }}>
+      <div className="workspace-bezel relative w-full overflow-hidden rounded-xl" style={{ height: "clamp(440px, calc(100dvh - 240px), 560px)" }}>
         <ReactFlow
           nodes={nodes}
           edges={edges}

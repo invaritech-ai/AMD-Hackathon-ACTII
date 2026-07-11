@@ -8,7 +8,7 @@ interface PageContainerProps {
 /** Single layout shell for every route — no width jumping between pages */
 export function PageContainer({ children, className }: PageContainerProps) {
   return (
-    <div className={cn("mx-auto w-full min-w-0 max-w-[1400px] px-5 py-8 sm:px-8 lg:px-10 xl:py-10", className)}>
+    <div className={cn("mx-auto w-full min-w-0 max-w-[1400px] px-5 py-6 sm:px-8 lg:px-10 xl:py-8", className)}>
       {children}
     </div>
   );

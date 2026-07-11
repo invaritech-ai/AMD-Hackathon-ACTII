@@ -97,7 +97,7 @@ export function FilesLibrary({
   };
 
   return (
-    <Card className="flex min-h-[560px] flex-col overflow-hidden">
+    <Card className="flex min-h-[440px] flex-col overflow-hidden 2xl:min-h-[560px]">
       <div className="border-b border-[var(--color-border)] p-4">
         <div className="flex items-start justify-between gap-3">
           <div>

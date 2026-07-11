@@ -45,7 +45,7 @@ export function GraphRoute() {
         labelColor="bg-[var(--color-accent)]"
         description="Focus on one investigation at a time, then keep the shared evidence library clean and usable."
       />
-      <div className="grid gap-5 xl:grid-cols-[230px_minmax(0,1fr)] 2xl:grid-cols-[240px_minmax(0,1fr)_340px]">
+      <div className="grid gap-5 xl:grid-cols-[200px_minmax(0,1fr)_300px] 2xl:grid-cols-[240px_minmax(0,1fr)_340px]">
         <CaseRail cases={casesQuery.data} activeCaseId={activeCaseId} onSelect={setActiveCaseId} isLoading={casesQuery.isLoading} />
 
         <section className="min-w-0">
@@ -71,7 +71,7 @@ export function GraphRoute() {
           )}
         </section>
 
-        <aside className="xl:col-span-2 2xl:col-span-1">
+        <aside>
           <FilesLibrary
             documents={documentsQuery.data}
             isLoading={documentsQuery.isLoading}

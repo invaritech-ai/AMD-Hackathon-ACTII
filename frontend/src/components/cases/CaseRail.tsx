@@ -11,7 +11,7 @@ interface CaseRailProps {
 
 export function CaseRail({ cases, activeCaseId, onSelect, isLoading }: CaseRailProps) {
   return (
-    <Card className="flex min-h-[560px] flex-col overflow-hidden">
+    <Card className="flex min-h-[440px] flex-col overflow-hidden 2xl:min-h-[560px]">
       <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-4">
         <div>
           <p className="text-label">Case folders</p>
