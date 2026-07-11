@@ -120,9 +120,10 @@ interface CaseGraphProps {
   graph?: GraphResponse;
   isLoading: boolean;
   isError: boolean;
+  compact?: boolean;
 }
 
-export function CaseGraph({ graph, isLoading, isError }: CaseGraphProps) {
+export function CaseGraph({ graph, isLoading, isError, compact = false }: CaseGraphProps) {
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
 
   const { nodes, edges } = useMemo(() => {
@@ -136,7 +137,7 @@ export function CaseGraph({ graph, isLoading, isError }: CaseGraphProps) {
 
   if (isLoading) {
     return (
-      <div className="workspace-bezel flex min-h-[440px] w-full flex-col items-center justify-center gap-3 rounded-xl 2xl:min-h-[560px]">
+      <div className={compact ? "workspace-bezel flex h-full min-h-0 w-full flex-col items-center justify-center gap-3 rounded-xl" : "workspace-bezel flex min-h-[440px] w-full flex-col items-center justify-center gap-3 rounded-xl 2xl:min-h-[560px]"}>
         <Spinner className="h-5 w-5" />
         <p className="text-sm text-[var(--color-foreground-subtle)] font-[var(--font-mono)]">Loading graph</p>
       </div>
@@ -145,7 +146,7 @@ export function CaseGraph({ graph, isLoading, isError }: CaseGraphProps) {
 
   if (isError) {
     return (
-      <div className="workspace-bezel flex min-h-[440px] w-full items-center justify-center rounded-xl 2xl:min-h-[560px]">
+      <div className={compact ? "workspace-bezel flex h-full min-h-0 w-full items-center justify-center rounded-xl" : "workspace-bezel flex min-h-[440px] w-full items-center justify-center rounded-xl 2xl:min-h-[560px]"}>
         <p className="text-sm text-[var(--color-destructive)] font-[var(--font-mono)]">Failed to load document graph.</p>
       </div>
     );
@@ -153,7 +154,7 @@ export function CaseGraph({ graph, isLoading, isError }: CaseGraphProps) {
 
   if (!graph || graph.nodes.length === 0) {
     return (
-      <div className="workspace-bezel flex min-h-[440px] w-full items-center justify-center rounded-xl 2xl:min-h-[560px]">
+      <div className={compact ? "workspace-bezel flex h-full min-h-0 w-full items-center justify-center rounded-xl" : "workspace-bezel flex min-h-[440px] w-full items-center justify-center rounded-xl 2xl:min-h-[560px]"}>
         <p className="text-sm text-[var(--color-foreground-subtle)] font-[var(--font-mono)]">
           This case has no resolved documents yet.
         </p>
@@ -163,7 +164,7 @@ export function CaseGraph({ graph, isLoading, isError }: CaseGraphProps) {
 
   return (
     <>
-      <div className="workspace-bezel relative w-full overflow-hidden rounded-xl" style={{ height: "clamp(440px, calc(100dvh - 240px), 560px)" }}>
+      <div className={compact ? "workspace-bezel relative h-full min-h-0 w-full overflow-hidden rounded-xl" : "workspace-bezel relative w-full overflow-hidden rounded-xl"} style={{ height: compact ? "100%" : "clamp(440px, calc(100dvh - 240px), 560px)" }}>
         <ReactFlow
           nodes={nodes}
           edges={edges}

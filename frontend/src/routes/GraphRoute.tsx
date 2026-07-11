@@ -38,32 +38,33 @@ export function GraphRoute() {
   const activeCase = casesQuery.data?.find((caseItem) => caseItem.case_id === activeCaseId);
 
   return (
-    <PageContainer>
+    <PageContainer className="flex h-[calc(100dvh-3rem)] min-h-0 flex-col">
       <PageHeader
         title="Case Command Center"
         label="Cases"
         labelColor="bg-[var(--color-accent)]"
         description="Focus on one investigation at a time, then keep the shared evidence library clean and usable."
       />
-      <div className="grid gap-5 xl:grid-cols-[200px_minmax(0,1fr)_300px] 2xl:grid-cols-[240px_minmax(0,1fr)_340px]">
-        <CaseRail cases={casesQuery.data} activeCaseId={activeCaseId} onSelect={setActiveCaseId} isLoading={casesQuery.isLoading} />
+      <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1.55fr)_minmax(0,1fr)] gap-5">
+        <div className="grid min-h-0 gap-5 xl:grid-cols-[200px_minmax(0,1fr)]">
+          <CaseRail cases={casesQuery.data} activeCaseId={activeCaseId} onSelect={setActiveCaseId} isLoading={casesQuery.isLoading} compact />
 
-        <section className="min-w-0">
+        <section className="flex min-w-0 min-h-0 flex-col">
           <CaseWorkspaceHeader caseItem={activeCase ?? null} isLoading={casesQuery.isLoading} />
           {casesQuery.isLoading ? (
-            <div className="workspace-bezel flex min-h-[560px] items-center justify-center rounded-xl px-6 text-center">
+            <div className="workspace-bezel flex h-full min-h-0 items-center justify-center rounded-xl px-6 text-center">
               <p className="max-w-xs text-[13px] leading-relaxed text-[var(--color-foreground-muted)]">Loading cases...</p>
             </div>
           ) : casesQuery.isError ? (
-            <div className="workspace-bezel flex min-h-[560px] items-center justify-center rounded-xl px-6 text-center">
+            <div className="workspace-bezel flex h-full min-h-0 items-center justify-center rounded-xl px-6 text-center">
               <p className="max-w-xs text-[13px] leading-relaxed text-[var(--color-destructive)]">
                 Cases could not be loaded.
               </p>
             </div>
           ) : activeCaseId ? (
-            <CaseGraph graph={graphQuery.data} isLoading={graphQuery.isLoading} isError={graphQuery.isError} />
+            <CaseGraph graph={graphQuery.data} isLoading={graphQuery.isLoading} isError={graphQuery.isError} compact />
           ) : (
-            <div className="workspace-bezel flex min-h-[560px] items-center justify-center rounded-xl px-6 text-center">
+            <div className="workspace-bezel flex h-full min-h-0 items-center justify-center rounded-xl px-6 text-center">
               <p className="max-w-xs text-[13px] leading-relaxed text-[var(--color-foreground-muted)]">
                 Process related documents to create the first evidence case.
               </p>
@@ -71,7 +72,9 @@ export function GraphRoute() {
           )}
         </section>
 
-        <aside>
+        </div>
+
+        <aside className="min-h-0">
           <FilesLibrary
             documents={documentsQuery.data}
             isLoading={documentsQuery.isLoading}
@@ -82,6 +85,7 @@ export function GraphRoute() {
             onTypeChange={setType}
             unassignedOnly={unassignedOnly}
             onUnassignedChange={setUnassignedOnly}
+            compact
           />
         </aside>
       </div>

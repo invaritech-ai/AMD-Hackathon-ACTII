@@ -68,6 +68,7 @@ interface FilesLibraryProps {
   onTypeChange: (value: DocType | "all") => void;
   unassignedOnly: boolean;
   onUnassignedChange: (value: boolean) => void;
+  compact?: boolean;
 }
 
 export function FilesLibrary({
@@ -80,6 +81,7 @@ export function FilesLibrary({
   onTypeChange,
   unassignedOnly,
   onUnassignedChange,
+  compact = false,
 }: FilesLibraryProps) {
   const deleteDocument = useDeleteDocument();
   const [pendingDeleteDocument, setPendingDeleteDocument] = useState<DocumentSummary | null>(null);
@@ -97,8 +99,8 @@ export function FilesLibrary({
   };
 
   return (
-    <Card className="flex min-h-[440px] flex-col overflow-hidden 2xl:min-h-[560px]">
-      <div className="border-b border-[var(--color-border)] p-4">
+    <Card className={cn("flex flex-col overflow-hidden", compact ? "h-full min-h-0" : "min-h-[440px] 2xl:min-h-[560px]")}>
+      <div className={cn("border-b border-[var(--color-border)] p-4", compact && "grid gap-3 xl:grid-cols-[minmax(180px,0.7fr)_minmax(220px,1fr)_minmax(420px,1.5fr)] xl:items-end")}>
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-label">Files library</p>
@@ -107,7 +109,7 @@ export function FilesLibrary({
           <Badge variant="neutral">{documents?.length ?? 0}</Badge>
         </div>
 
-        <div className="mt-4 flex items-stretch rounded-md border border-[var(--color-border)] bg-[var(--color-surface-raised)]">
+        <div className={cn("mt-4 flex items-stretch rounded-md border border-[var(--color-border)] bg-[var(--color-surface-raised)]", compact && "xl:mt-0")}>
           <span className="flex items-center pl-3 text-[var(--color-foreground-subtle)]">
             <Search className="h-3.5 w-3.5" />
           </span>
@@ -134,10 +136,10 @@ export function FilesLibrary({
           )}
         </div>
 
-        <div className="mt-4">
-          <p className="mb-2 text-label">File type</p>
-          <Tabs value={type} onValueChange={(value) => onTypeChange(value as DocType | "all")}>
-            <TabsList className="grid h-auto w-full grid-cols-3 gap-1 rounded-lg bg-[var(--color-surface-raised)] p-1">
+        <div className={cn("mt-4", compact && "mt-0 xl:flex xl:items-end xl:gap-2")}>
+          <p className={cn("mb-2 text-label", compact && "sr-only")}>File type</p>
+          <Tabs className={cn(compact && "min-w-0 flex-1")} value={type} onValueChange={(value) => onTypeChange(value as DocType | "all")}>
+            <TabsList className={cn("grid h-auto w-full grid-cols-3 gap-1 rounded-lg bg-[var(--color-surface-raised)] p-1", compact && "xl:grid-cols-6")}>
               {documentTypes.map((filter) => (
                 <TabsTrigger
                   key={filter}
@@ -160,6 +162,7 @@ export function FilesLibrary({
             onClick={() => onUnassignedChange(!unassignedOnly)}
             className={cn(
               "mt-3 h-8 w-full justify-between rounded-md border px-2.5 text-[11px]",
+              compact && "xl:mt-0 xl:w-auto xl:shrink-0",
               unassignedOnly
                 ? "border-[var(--color-primary-border)] bg-[var(--color-primary-soft)] text-[var(--color-foreground)]"
                 : "border-[var(--color-border)] text-[var(--color-foreground-muted)] hover:text-[var(--color-foreground)]"
@@ -217,11 +220,13 @@ export function FilesLibrary({
         </div>
       </ScrollArea>
 
-      <div className="border-t border-[var(--color-border)] bg-[var(--color-surface-raised)] px-4 py-3">
-        <p className="text-[11px] leading-relaxed text-[var(--color-foreground-subtle)]">
-          Removing a document deletes its source and every case association.
-        </p>
-      </div>
+      {!compact && (
+        <div className="border-t border-[var(--color-border)] bg-[var(--color-surface-raised)] px-4 py-3">
+          <p className="text-[11px] leading-relaxed text-[var(--color-foreground-subtle)]">
+            Removing a document deletes its source and every case association.
+          </p>
+        </div>
+      )}
 
       <Dialog open={Boolean(pendingDeleteDocument)} onOpenChange={(open) => !open && !deleteDocument.isPending && setPendingDeleteDocument(null)}>
         <DialogContent className="max-w-md">

@@ -7,11 +7,12 @@ interface CaseRailProps {
   activeCaseId: string | null;
   onSelect: (caseId: string) => void;
   isLoading: boolean;
+  compact?: boolean;
 }
 
-export function CaseRail({ cases, activeCaseId, onSelect, isLoading }: CaseRailProps) {
+export function CaseRail({ cases, activeCaseId, onSelect, isLoading, compact = false }: CaseRailProps) {
   return (
-    <Card className="flex min-h-[440px] flex-col overflow-hidden 2xl:min-h-[560px]">
+    <Card className={cn("flex flex-col overflow-hidden", compact ? "h-full min-h-0" : "min-h-[440px] 2xl:min-h-[560px]")}>
       <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-4">
         <div>
           <p className="text-label">Case folders</p>
