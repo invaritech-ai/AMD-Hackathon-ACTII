@@ -50,19 +50,18 @@ export function DiscrepancyTable({ discrepancies }: DiscrepancyTableProps) {
   const totalImpact = discrepancies.reduce((sum, d) => sum + d.difference_amount, 0);
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-warning)]" />
-          <p className="text-xs font-[var(--font-mono)] tracking-[0.15em] text-[var(--color-foreground-subtle)] uppercase">
-            {discrepancies.length} Items Flagged
-          </p>
+    <section className="space-y-3">
+      <div className="flex items-end justify-between gap-4 border-b border-[var(--color-border)] pb-3">
+        <div>
+          <p className="text-label">Review queue</p>
+          <p className="mt-1 text-[13px] text-[var(--color-foreground-muted)]">Select a row to inspect the source comparison.</p>
         </div>
         <Badge variant="high">
           <span className="font-[var(--font-mono)] tracking-wider">+${totalImpact.toFixed(2)}</span>
         </Badge>
       </div>
 
+      <div className="max-h-[calc(100dvh-330px)] overflow-auto rounded-xl">
       <Table>
         <TableHeader>
           <TableRow>
@@ -94,13 +93,13 @@ export function DiscrepancyTable({ discrepancies }: DiscrepancyTableProps) {
                 <Badge variant="neutral">{typeLabel(d.discrepancy_type)}</Badge>
               </TableCell>
               <TableCell>
-                <span className={cn(dataValueClass, "group-hover:text-[var(--color-foreground)] transition-colors")}>
-                  {(d.expected_quantity ?? 0) > 0 ? `${d.expected_quantity} × $${(d.expected_unit_price ?? 0).toFixed(2)}` : "—"}
+                <span className={cn(dataValueClass, "transition-colors group-hover:text-[var(--color-foreground)]")}>
+                  {(d.expected_quantity ?? 0) > 0 ? `${d.expected_quantity} × $${(d.expected_unit_price ?? 0).toFixed(2)}` : "-"}
                 </span>
               </TableCell>
               <TableCell>
-                <span className={cn(dataValueClass, "group-hover:text-[var(--color-foreground)] transition-colors")}>
-                  {(d.actual_quantity ?? 0) > 0 ? `${d.actual_quantity} × $${(d.actual_unit_price ?? 0).toFixed(2)}` : "—"}
+                <span className={cn(dataValueClass, "transition-colors group-hover:text-[var(--color-foreground)]")}>
+                  {(d.actual_quantity ?? 0) > 0 ? `${d.actual_quantity} × $${(d.actual_unit_price ?? 0).toFixed(2)}` : "-"}
                 </span>
               </TableCell>
               <TableCell className="text-right">
@@ -115,6 +114,7 @@ export function DiscrepancyTable({ discrepancies }: DiscrepancyTableProps) {
           ))}
         </TableBody>
       </Table>
-    </div>
+      </div>
+    </section>
   );
 }

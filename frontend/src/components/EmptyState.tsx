@@ -5,7 +5,7 @@ import {
   BarChart3,
   type LucideIcon,
 } from "lucide-react";
-import { cn } from "@claims/ui";
+import { Button, cn } from "@claims/ui";
 
 type EmptyStateIcon = "pipeline" | "discrepancies" | "claims" | "ledger";
 
@@ -41,31 +41,27 @@ export function EmptyState({ icon, title, description, action, className }: Empt
   return (
     <div
       className={cn(
-        "w-full border border-dashed border-[var(--color-border)] rounded-lg",
+        "workspace-bezel w-full rounded-xl",
         "flex flex-col items-center justify-center text-center",
-        "px-8 py-20 min-h-[320px]",
+        "min-h-[300px] px-8 py-12",
         className
       )}
     >
-      <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] mb-5">
+      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-raised)]">
         <Icon className={cn("h-6 w-6", iconColor)} />
       </div>
-      <h2 className="text-base font-semibold text-[var(--color-foreground)] mb-2">
+      <h2 className="mb-2 text-base font-semibold text-[var(--color-foreground)]">
         {title}
       </h2>
       {description && (
-        <p className="text-sm text-[var(--color-foreground-subtle)] max-w-sm leading-relaxed">
+        <p className="max-w-sm text-[13px] leading-5 text-[var(--color-foreground-muted)]">
           {description}
         </p>
       )}
       {action && (
-        <button
-          type="button"
-          onClick={action.onClick}
-          className="mt-5 text-sm text-[var(--color-primary)] hover:underline underline-offset-4 font-medium"
-        >
-          {action.label} →
-        </button>
+        <Button type="button" variant="secondary" size="sm" className="mt-5" onClick={action.onClick}>
+          {action.label}
+        </Button>
       )}
     </div>
   );

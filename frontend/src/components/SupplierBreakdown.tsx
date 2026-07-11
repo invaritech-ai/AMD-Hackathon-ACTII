@@ -7,7 +7,7 @@ interface SupplierBreakdownProps {
   runs: RunSummary[];
 }
 
-const BAR_COLORS = ["#F59E0B", "#8B5CF6", "#10B981", "#06B6D4", "#EF4444", "#64748B", "#F97316"];
+const BAR_COLORS = ["#F6A623", "#6AA8FF", "#2BCB88", "#44C4E0", "#F16464", "#71819A", "#D98324"];
 
 export function SupplierBreakdown({ runs }: SupplierBreakdownProps) {
   const data = useMemo(() => {
@@ -34,18 +34,18 @@ export function SupplierBreakdown({ runs }: SupplierBreakdownProps) {
   }
 
   return (
-    <Card>
+    <Card className="overflow-hidden">
       <CardHeader>
         <CardTitle>Claim Value by Supplier</CardTitle>
       </CardHeader>
-      <CardContent>
-        <ResponsiveContainer width="100%" height={320}>
+      <CardContent className="pt-0">
+        <ResponsiveContainer width="100%" height={230}>
           <BarChart data={data} layout="vertical" margin={{ left: 20, right: 30, top: 5, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" horizontal={false} />
             <XAxis type="number" stroke="var(--color-foreground-subtle)" fontSize={10} fontFamily="Fira Code, ui-monospace, monospace" tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
             <YAxis type="category" dataKey="name" stroke="var(--color-foreground-subtle)" fontSize={11} fontFamily="Fira Sans, ui-sans-serif, sans-serif" width={130} tick={{ fill: "var(--color-foreground)" }} />
-            <Tooltip contentStyle={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)", color: "var(--color-foreground)", fontSize: "12px", fontFamily: "Fira Code, monospace", borderRadius: "4px" }} formatter={(value: number) => [`$${value.toFixed(2)}`, "Claim Value"]} cursor={{ fill: "rgb(139 92 246 / 0.06)" }} />
-            <Bar dataKey="value" radius={[0, 2, 2, 0]} barSize={22}>
+            <Tooltip contentStyle={{ backgroundColor: "var(--color-surface-raised)", border: "1px solid var(--color-border)", color: "var(--color-foreground)", fontSize: "12px", fontFamily: "Fira Code, monospace", borderRadius: "8px" }} formatter={(value: number) => [`$${value.toFixed(2)}`, "Claim Value"]} cursor={{ fill: "rgb(246 166 35 / 0.06)" }} />
+            <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={20}>
               {data.map((_, i) => (<Cell key={i} fill={BAR_COLORS[i % BAR_COLORS.length]} />))}
             </Bar>
           </BarChart>

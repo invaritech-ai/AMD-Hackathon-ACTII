@@ -106,8 +106,8 @@ export function ClaimsRoute() {
           description="This run has not generated a recovery claim."
         />
       ) : (
-        <Card>
-          <CardHeader>
+        <Card className="overflow-hidden">
+          <CardHeader className="border-b border-[var(--color-border)]">
             <div className="flex items-start justify-between">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
@@ -119,32 +119,32 @@ export function ClaimsRoute() {
                 <CardTitle>{claim.invoice_number}</CardTitle>
                 <p className="text-xs text-[var(--color-foreground-subtle)] font-[var(--font-mono)]">
                   <span>{claim.claim_date}</span>
-                  <span className="mx-2 text-[var(--color-border)]">|</span>
+                  <span className="mx-2 text-[var(--color-border)]">/</span>
                   <span>PO {claim.po_number}</span>
                 </p>
               </div>
               <Badge variant={claimStatusVariant(claim.status)}>{claim.status}</Badge>
             </div>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-5">
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-              <Card className="border-[var(--color-accent)]/20">
-                <CardContent className="space-y-2 pt-6">
+              <Card className="border-[var(--color-primary-border)] bg-[var(--color-primary-soft)]">
+                <CardContent className="space-y-2 p-5">
                   <p className="text-[10px] font-[var(--font-mono)] tracking-[0.2em] text-[var(--color-foreground-subtle)]">
                     TOTAL CLAIM AMOUNT
                   </p>
-                  <p className="text-3xl font-[var(--font-mono)] font-semibold tracking-tight text-[var(--color-accent)]">
+                  <p className="text-3xl font-[var(--font-mono)] font-semibold tracking-tight text-[var(--color-primary)]">
                     ${claim.total_claim_amount.toFixed(2)}
                   </p>
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader className="pb-3">
+              <Card className="bg-[var(--color-surface-raised)]">
+                <CardHeader className="p-5 pb-3">
                   <CardTitle className="text-base">Claim metadata</CardTitle>
                   <CardDescription>Recovered against the original invoice record.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-3 font-[var(--font-mono)] text-xs">
+                <CardContent className="space-y-3 p-5 pt-0 font-[var(--font-mono)] text-xs">
                   <div className="flex items-center justify-between gap-4 border-b border-[var(--color-border)] pb-3">
                     <span className="text-[var(--color-foreground-subtle)]">Claim number</span>
                     <span className="text-right text-[var(--color-foreground)]">{claim.claim_number}</span>
@@ -162,25 +162,25 @@ export function ClaimsRoute() {
             </div>
 
             {claim.draft_text ? (
-              <Card>
-                <CardHeader>
+              <Card className="overflow-hidden">
+                <CardHeader className="border-b border-[var(--color-border)]">
                   <CardTitle className="text-base">Draft recovery letter</CardTitle>
                   <CardDescription>Generated claim text for supplier outreach.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <pre className="whitespace-pre-wrap font-[var(--font-mono)] text-sm leading-relaxed text-[var(--color-foreground-subtle)]">
+                  <pre className="workspace-bezel max-h-[230px] overflow-auto rounded-lg p-4 whitespace-pre-wrap font-[var(--font-mono)] text-[13px] leading-6 text-[var(--color-foreground-muted)]">
                     {claim.draft_text}
                   </pre>
                 </CardContent>
               </Card>
             ) : (
               run && run.discrepancies.length > 0 && (
-                <Card>
-                  <CardHeader>
+                <Card className="overflow-hidden">
+                  <CardHeader className="border-b border-[var(--color-border)]">
                     <CardTitle className="text-base">Claim line items</CardTitle>
                     <CardDescription>Every discrepancy contributing to this recovery request.</CardDescription>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="max-h-[calc(100dvh-430px)] overflow-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>

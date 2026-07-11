@@ -24,7 +24,7 @@ export function DiscrepanciesRoute() {
         description={
           run
             ? `${run.invoice_number} — ${run.supplier_name}`
-            : "Review invoice discrepancies and overcharges."
+            : "Inspect the recovery exposure found in a completed processing run."
         }
         onBack={runId ? () => navigate("/") : undefined}
         actions={
@@ -65,49 +65,40 @@ export function DiscrepanciesRoute() {
           description="This run completed with no discrepancies."
         />
       ) : (
-        <div className="space-y-8">
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardContent className="space-y-3 pt-6">
-                <p className="text-[10px] font-[var(--font-mono)] tracking-[0.18em] text-[var(--color-foreground-subtle)] uppercase">
-                  Flagged lines
+        <div className="space-y-6">
+          <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr_0.85fr]">
+            <Card className="border-[rgb(241_100_100_/_0.3)]">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-label">Recoverable exposure</p>
+                  <Badge variant="high">Priority</Badge>
+                </div>
+                <p className="mt-3 font-[var(--font-mono)] text-[30px] font-semibold leading-none tracking-[-0.03em] text-[var(--color-destructive)]">
+                  ${totalImpact.toFixed(2)}
                 </p>
-                <div className="flex items-end justify-between gap-3">
-                  <p className="text-3xl font-[var(--font-mono)] font-semibold tracking-tight text-[var(--color-foreground)]">
-                    {discrepancies.length}
-                  </p>
+                <p className="mt-2 text-[12px] text-[var(--color-foreground-muted)]">Potential recovery across this run.</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-5">
+                <p className="text-label">Flagged lines</p>
+                <div className="mt-3 flex items-end justify-between gap-3">
+                  <p className="font-[var(--font-mono)] text-[28px] font-semibold leading-none text-[var(--color-foreground)]">{discrepancies.length}</p>
                   <Badge variant="neutral">Run scope</Badge>
                 </div>
+                <p className="mt-2 text-[12px] text-[var(--color-foreground-muted)]">Evidence rows requiring comparison.</p>
               </CardContent>
             </Card>
 
             <Card>
-              <CardContent className="space-y-3 pt-6">
-                <p className="text-[10px] font-[var(--font-mono)] tracking-[0.18em] text-[var(--color-foreground-subtle)] uppercase">
-                  Total exposure
-                </p>
-                <div className="flex items-end justify-between gap-3">
-                  <p className="text-3xl font-[var(--font-mono)] font-semibold tracking-tight text-[var(--color-destructive)]">
-                    +${totalImpact.toFixed(2)}
-                  </p>
-                  <Badge variant="high">Recovery</Badge>
+              <CardContent className="p-5">
+                <p className="text-label">Review priority</p>
+                <div className="mt-3 flex items-end justify-between gap-3">
+                  <p className="font-[var(--font-mono)] text-[28px] font-semibold leading-none text-[var(--color-foreground)]">{reviewCount}</p>
+                  <Badge variant={highSeverityCount > 0 ? "high" : "neutral"}>{highSeverityCount} high</Badge>
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="space-y-3 pt-6">
-                <p className="text-[10px] font-[var(--font-mono)] tracking-[0.18em] text-[var(--color-foreground-subtle)] uppercase">
-                  Needs review
-                </p>
-                <div className="flex items-end justify-between gap-3">
-                  <p className="text-3xl font-[var(--font-mono)] font-semibold tracking-tight text-[var(--color-foreground)]">
-                    {reviewCount}
-                  </p>
-                  <Badge variant={highSeverityCount > 0 ? "high" : "neutral"}>
-                    {highSeverityCount} high severity
-                  </Badge>
-                </div>
+                <p className="mt-2 text-[12px] text-[var(--color-foreground-muted)]">Medium and high findings to validate.</p>
               </CardContent>
             </Card>
           </div>

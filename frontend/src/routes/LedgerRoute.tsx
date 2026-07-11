@@ -30,7 +30,7 @@ export function LedgerRoute() {
         title="Recovery Ledger"
         label="Ledger"
         labelColor="bg-[var(--color-success)]"
-        description="Cross-run metrics and recovery performance."
+        description="Cross-run recovery exposure, supplier concentration, and completed claim value."
         actions={
           <Button variant="secondary" size="sm" onClick={() => void refetch()} disabled={isFetching}>
             {isFetching ? "Refreshing..." : "Refresh"}
@@ -90,9 +90,8 @@ export function LedgerRoute() {
       )}
 
       {!isError && !isLoading && runs.length > 0 && (
-        <div className="space-y-6">
-          <Card>
-            <CardContent className="flex flex-col gap-4 pt-6 md:flex-row md:items-center md:justify-between">
+        <div className="space-y-5">
+          <section className="flex flex-col gap-4 border-y border-[var(--color-border)] py-4 md:flex-row md:items-center md:justify-between">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-success)]" />
@@ -100,7 +99,7 @@ export function LedgerRoute() {
                     Recovery snapshot
                   </p>
                 </div>
-                <p className="text-sm text-[var(--color-foreground-subtle)]">
+                <p className="text-[13px] text-[var(--color-foreground-muted)]">
                   {completedRuns} processed invoices have produced ${totalClaimValue.toFixed(2)} in recoverable value across {Object.keys(supplierTotals).length} suppliers.
                 </p>
               </div>
@@ -113,8 +112,7 @@ export function LedgerRoute() {
                   </Badge>
                 ) : null}
               </div>
-            </CardContent>
-          </Card>
+          </section>
 
           <LedgerStats
             totalClaimValue={totalClaimValue}
@@ -122,7 +120,7 @@ export function LedgerRoute() {
             completedRuns={completedRuns}
             totalRuns={runs.length}
           />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
             <SupplierBreakdown runs={runs} />
             <ClaimTimeline runs={runs} />
           </div>
