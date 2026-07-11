@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { CheckCircle, Sparkles, AlertCircle } from "lucide-react";
+import { CheckCircle, AlertCircle } from "lucide-react";
 import { Card, CardContent, Stepper, Badge, Button, Spinner, Skeleton, cn } from "@claims/ui";
 import { useRunStatus } from "@/hooks/useRunStatus";
 import type { AgentId, AgentStatusValue } from "@claims/shared";
@@ -37,21 +37,28 @@ export function PipelineStepper({ runId }: PipelineStepperProps) {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-4 w-48" />
-        <Skeleton className="h-28 w-full" />
-      </div>
+      <Card className="rounded-xl">
+        <CardContent className="space-y-6 py-6">
+          <Skeleton className="h-4 w-48" />
+          <Skeleton className="h-28 w-full" />
+        </CardContent>
+      </Card>
     );
   }
 
   if (isQueryError || !run) {
     return (
-      <div className="border border-[var(--color-destructive)]/20 px-6 py-8 text-center">
-        <AlertCircle className="h-6 w-6 mx-auto mb-3 text-[var(--color-destructive)]" />
-        <p className="text-sm text-[var(--color-destructive)] font-[var(--font-mono)]">
-          Failed to load pipeline status.
-        </p>
-      </div>
+      <Card className="rounded-xl border-[var(--color-destructive)]/20">
+        <CardContent className="px-6 py-8 text-center">
+          <Badge variant="high" className="mb-3">
+            Pipeline unavailable
+          </Badge>
+          <AlertCircle className="mx-auto mb-3 h-6 w-6 text-[var(--color-destructive)]" />
+          <p className="text-sm font-[var(--font-mono)] text-[var(--color-destructive)]">
+            Failed to load pipeline status.
+          </p>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -95,20 +102,25 @@ export function PipelineStepper({ runId }: PipelineStepperProps) {
       <Stepper steps={[...AGENT_STEPS]} activeStep={activeStep} stepStatus={stepStatus} />
 
       {isRunning && (
-        <div className="flex items-center gap-3 text-sm text-[var(--color-foreground-subtle)] font-[var(--font-mono)]">
-          <Sparkles className="h-4 w-4 text-[var(--color-primary)]" />
-          <span>
-            Agent {activeStep}: {AGENT_STEPS[activeStep - 1]?.label} running...
-          </span>
-        </div>
+        <Card className="rounded-lg border-[var(--color-border)] bg-[var(--color-surface)] shadow-none">
+          <CardContent className="flex items-center gap-3 p-4 text-sm font-[var(--font-mono)] text-[var(--color-foreground-subtle)]">
+            <Spinner className="h-4 w-4" />
+            <span>
+              Step {activeStep}: {AGENT_STEPS[activeStep - 1]?.label} running
+            </span>
+          </CardContent>
+        </Card>
       )}
 
       {hasError && (
-        <div className="border border-[var(--color-destructive)]/20 p-5">
-          <p className="text-xs text-[var(--color-destructive)] font-[var(--font-mono)] leading-relaxed">
-            {run.error_message ?? "Unknown failure — check agent logs."}
-          </p>
-        </div>
+        <Card className="rounded-lg border-[var(--color-destructive)]/20 bg-[rgb(239_68_68_/_0.05)] shadow-none">
+          <CardContent className="p-5">
+            <Badge variant="high">Run failed</Badge>
+            <p className="mt-3 text-xs leading-relaxed text-[var(--color-destructive)] font-[var(--font-mono)]">
+              {run.error_message ?? "Unknown failure — check agent logs."}
+            </p>
+          </CardContent>
+        </Card>
       )}
 
       {isDone && (
@@ -124,12 +136,17 @@ export function PipelineStepper({ runId }: PipelineStepperProps) {
             </Button>
           )}
           {(run.discrepancies?.length ?? 0) === 0 && (run.claims?.length ?? 0) === 0 && (
-            <div className="flex items-center gap-3 border border-[var(--color-success)]/20 px-5 py-4">
-              <CheckCircle className="h-5 w-5 text-[var(--color-success)]" />
-              <p className="text-sm text-[var(--color-success)] font-[var(--font-mono)]">
-                All clear — no discrepancies detected
-              </p>
-            </div>
+            <Card className="rounded-lg border-[var(--color-success)]/20 bg-[rgb(16_185_129_/_0.05)] shadow-none">
+              <CardContent className="flex items-center gap-3 p-4">
+                <CheckCircle className="h-5 w-5 text-[var(--color-success)]" />
+                <div className="space-y-1">
+                  <Badge variant="success">No discrepancies</Badge>
+                  <p className="text-sm font-[var(--font-mono)] text-[var(--color-success)]">
+                    No discrepancies detected
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           )}
         </div>
       )}
