@@ -177,3 +177,111 @@ async def test_ledger_case_includes_latest_exceptions_and_ordered_history(
         "partially_recovered",
     ]
     assert row["outstanding_amount"] == "1352.00"
+
+
+async def _claim_for_status(session, status: str = "draft") -> tuple[Case, Claim]:
+    case = Case(title="Lifecycle Case")
+    session.add(case)
+    await session.flush()
+    claim = Claim(
+        case_id=case.id,
+        total_amount=Decimal("2352.00"),
+        recovered_amount=Decimal("0.00"),
+        currency="AUD",
+        status=status,
+    )
+    session.add(claim)
+    await session.commit()
+    return case, claim
+
+
+@pytest.mark.asyncio
+async def test_valid_status_transition_records_history(client, session):
+    case, _ = await _claim_for_status(session)
+
+    response = await client.patch(
+        f"/api/v1/cases/{case.id}/ledger",
+        json={"status": "submitted", "note": "Sent to retailer"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "submitted"
+    assert body["history"][-1]["from_status"] == "draft"
+    assert body["history"][-1]["to_status"] == "submitted"
+    assert body["history"][-1]["note"] == "Sent to retailer"
+
+
+@pytest.mark.asyncio
+async def test_invalid_status_jump_returns_conflict(client, session):
+    case, _ = await _claim_for_status(session)
+
+    response = await client.patch(
+        f"/api/v1/cases/{case.id}/ledger", json={"status": "approved"}
+    )
+
+    assert response.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_unknown_case_ledger_returns_not_found(client):
+    response = await client.patch(
+        "/api/v1/cases/unknown/ledger", json={"status": "submitted"}
+    )
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Case has no generated claim"}
+
+
+@pytest.mark.asyncio
+async def test_case_without_claim_returns_not_found(client, session):
+    case = Case(title="Claimless Case")
+    session.add(case)
+    await session.commit()
+
+    response = await client.patch(
+        f"/api/v1/cases/{case.id}/ledger", json={"status": "submitted"}
+    )
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Case has no generated claim"}
+
+
+@pytest.mark.asyncio
+async def test_partial_and_full_recovery_amount_rules(client, session):
+    case, _ = await _claim_for_status(session, status="approved")
+
+    for amount in (None, "0.00", "2352.00"):
+        payload = {"status": "partially_recovered"}
+        if amount is not None:
+            payload["recovered_amount"] = amount
+        rejected = await client.patch(
+            f"/api/v1/cases/{case.id}/ledger", json=payload
+        )
+        assert rejected.status_code == 409
+
+    partial = await client.patch(
+        f"/api/v1/cases/{case.id}/ledger",
+        json={"status": "partially_recovered", "recovered_amount": "1000.00"},
+    )
+    assert partial.status_code == 200
+    assert partial.json()["recovered_amount"] == "1000.00"
+    assert partial.json()["outstanding_amount"] == "1352.00"
+
+    recovered = await client.patch(
+        f"/api/v1/cases/{case.id}/ledger", json={"status": "recovered"}
+    )
+    assert recovered.status_code == 200
+    assert recovered.json()["recovered_amount"] == "2352.00"
+    assert recovered.json()["outstanding_amount"] == "0.00"
+
+
+@pytest.mark.asyncio
+async def test_terminal_claim_cannot_transition(client, session):
+    case, _ = await _claim_for_status(session, status="written_off")
+
+    response = await client.patch(
+        f"/api/v1/cases/{case.id}/ledger", json={"status": "recovered"}
+    )
+
+    assert response.status_code == 409

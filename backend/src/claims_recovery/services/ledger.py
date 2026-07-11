@@ -17,7 +17,29 @@ from claims_recovery.schemas.api import (
     LedgerCaseResponse,
     LedgerCurrencySummary,
     LedgerResponse,
+    LedgerUpdateRequest,
 )
+
+FORWARD_TRANSITIONS: dict[str, set[str]] = {
+    "draft": {"submitted"},
+    "submitted": {"under_review"},
+    "under_review": {"approved"},
+    "approved": {"partially_recovered", "recovered"},
+    "partially_recovered": {"recovered"},
+    "recovered": set(),
+    "rejected": set(),
+    "written_off": set(),
+}
+TERMINAL_STATUSES = {"recovered", "rejected", "written_off"}
+TERMINAL_ALTERNATIVES = {"rejected", "written_off"}
+
+
+class LedgerNotFound(Exception):
+    pass
+
+
+class LedgerConflict(Exception):
+    pass
 
 
 async def get_case_ledger_row(
@@ -95,3 +117,53 @@ async def get_ledger(session: AsyncSession) -> LedgerResponse:
         )
 
     return LedgerResponse(summaries=summaries, cases=rows)
+
+
+async def update_case_ledger(
+    session: AsyncSession, case_id: str, body: LedgerUpdateRequest
+) -> LedgerCaseResponse:
+    claim = (
+        await session.execute(
+            select(Claim).where(Claim.case_id == case_id).with_for_update()
+        )
+    ).scalar_one_or_none()
+    if claim is None:
+        raise LedgerNotFound("Case has no generated claim")
+
+    current = claim.status
+    if current in TERMINAL_STATUSES:
+        raise LedgerConflict(f"Claim status '{current}' is terminal")
+    allowed = FORWARD_TRANSITIONS.get(current)
+    if allowed is None:
+        raise LedgerConflict(f"Unsupported current claim status '{current}'")
+    if body.status not in allowed | TERMINAL_ALTERNATIVES:
+        raise LedgerConflict(f"Cannot transition claim from '{current}' to '{body.status}'")
+
+    recovered_amount = claim.recovered_amount
+    if body.status == "partially_recovered":
+        requested = body.recovered_amount
+        if requested is None or requested <= 0 or requested >= claim.total_amount:
+            raise LedgerConflict(
+                "Partial recovery must be greater than zero and less than the claim amount"
+            )
+        recovered_amount = requested
+    elif body.status == "recovered":
+        recovered_amount = claim.total_amount
+
+    claim.status = body.status
+    claim.recovered_amount = recovered_amount
+    session.add(
+        ClaimStatusEvent(
+            claim_id=claim.id,
+            from_status=current,
+            to_status=body.status,
+            recovered_amount=recovered_amount,
+            note=body.note,
+        )
+    )
+    await session.commit()
+    await session.refresh(claim)
+    case = await session.get(Case, case_id)
+    if case is None:
+        raise LedgerNotFound("Case has no generated claim")
+    return await get_case_ledger_row(session, claim, case)

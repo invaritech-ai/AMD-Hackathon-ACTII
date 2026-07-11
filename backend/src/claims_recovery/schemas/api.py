@@ -171,6 +171,12 @@ class LedgerResponse(BaseModel):
     cases: list[LedgerCaseResponse] = Field(default_factory=list)
 
 
+class LedgerUpdateRequest(BaseModel):
+    status: ClaimStatus
+    recovered_amount: Decimal | None = Field(default=None, ge=0)
+    note: str | None = Field(default=None, max_length=1000)
+
+
 # ── Invoice ───────────────────────────────────────────
 
 class LineItemResponse(BaseModel):
