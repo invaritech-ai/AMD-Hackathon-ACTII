@@ -18,7 +18,7 @@ export function DiscrepanciesRoute() {
   return (
     <PageContainer>
       <PageHeader
-        title="Discrepancy Analysis"
+        title="Anomaly Analysis"
         label="Discrepancies"
         labelColor="bg-[var(--color-warning)]"
         description={
@@ -40,7 +40,7 @@ export function DiscrepanciesRoute() {
         <EmptyState
           icon="discrepancies"
           title="No pipeline run selected"
-          description="Upload and process an invoice through the pipeline to detect discrepancies."
+          description="Upload an invoice and run the recovery pipeline to detect discrepancies and pricing anomalies."
           action={{ label: "Go to Pipeline", onClick: () => navigate("/") }}
         />
       ) : isLoading ? (
