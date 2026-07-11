@@ -3,8 +3,17 @@ import {
   ReactFlow,
   Background,
   Controls,
+  Handle,
+  Position,
+  BaseEdge,
+  EdgeLabelRenderer,
+  getStraightPath,
+  useInternalNode,
+  useNodesState,
   type Node,
   type Edge,
+  type EdgeProps,
+  type InternalNode,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Spinner } from "@claims/ui";
@@ -81,17 +90,53 @@ function layoutNodes(
     id: `${e.source}-${e.target}`,
     source: e.source,
     target: e.target,
+    type: "floating",
     animated: false,
-    style: { stroke: "var(--color-border-light)", strokeWidth: 2 },
-    label: e.shared_ids.join(", "),
-    labelStyle: { fill: "var(--color-foreground-subtle)", fontSize: 10, fontFamily: "Fira Code, monospace" },
-    labelBgStyle: { fill: "var(--color-surface)" },
-    labelBgPadding: [4, 2] as [number, number],
-    labelBgBorderRadius: 2,
+    style: { stroke: "var(--color-border-light)", strokeWidth: 1.5 },
+    data: { label: e.shared_ids.join(", ") },
   }));
 
   return { nodes, edges };
 }
+
+// Center of a node in flow coordinates.
+function nodeCenter(node: InternalNode) {
+  const { x, y } = node.internals.positionAbsolute;
+  return { x: x + (node.measured.width ?? 0) / 2, y: y + (node.measured.height ?? 0) / 2 };
+}
+
+// Floating edge: draws a straight line between node centers (the opaque node
+// bodies mask the overlapping ends). This keeps every shared-evidence link
+// visible regardless of where the circular layout places the nodes — a fixed
+// top/bottom handle would route edges awkwardly across the ring.
+function FloatingEdge({ id, source, target, style, data }: EdgeProps) {
+  const sourceNode = useInternalNode(source);
+  const targetNode = useInternalNode(target);
+  if (!sourceNode || !targetNode) return null;
+
+  const s = nodeCenter(sourceNode);
+  const t = nodeCenter(targetNode);
+  const [path, labelX, labelY] = getStraightPath({ sourceX: s.x, sourceY: s.y, targetX: t.x, targetY: t.y });
+  const label = (data as { label?: string } | undefined)?.label;
+
+  return (
+    <>
+      <BaseEdge id={id} path={path} style={style} />
+      {label && (
+        <EdgeLabelRenderer>
+          <div
+            className="pointer-events-none absolute rounded bg-[var(--color-surface)] px-1.5 py-0.5 font-[var(--font-mono)] text-[9px] tracking-[0.02em] text-[var(--color-foreground-subtle)]"
+            style={{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)` }}
+          >
+            {label}
+          </div>
+        </EdgeLabelRenderer>
+      )}
+    </>
+  );
+}
+
+const edgeTypes = { floating: FloatingEdge };
 
 function DocumentNode({ data }: { data: { filename: string; docType: DocType; ids: string[]; caseId: string } }) {
   const color = typeColor[data.docType];
@@ -105,6 +150,9 @@ function DocumentNode({ data }: { data: { filename: string; docType: DocType; id
         boxShadow: `0 0 0 1px ${bg}`,
       }}
     >
+      {/* Hidden handles: the floating edge computes its own geometry, but React
+          Flow still needs a handle on each end to register the connection. */}
+      <Handle type="target" position={Position.Top} isConnectable={false} className="!h-0 !w-0 !min-w-0 !border-0 !bg-transparent" />
       <p className="mb-1.5 max-w-[140px] truncate text-[11px] font-semibold" style={{ color }}>
         {data.filename}
       </p>
@@ -114,6 +162,7 @@ function DocumentNode({ data }: { data: { filename: string; docType: DocType; id
       >
         {data.docType}
       </span>
+      <Handle type="source" position={Position.Bottom} isConnectable={false} className="!h-0 !w-0 !min-w-0 !border-0 !bg-transparent" />
     </div>
   );
 }
@@ -124,20 +173,27 @@ interface CaseGraphProps {
   graph?: GraphResponse;
   isLoading: boolean;
   isError: boolean;
+  caseId?: string | null;
   compact?: boolean;
 }
 
-export function CaseGraph({ graph, isLoading, isError, compact = false }: CaseGraphProps) {
+export function CaseGraph({ graph, isLoading, isError, caseId, compact = false }: CaseGraphProps) {
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
 
-  const { nodes, edges } = useMemo(() => {
-    if (!graph) return { nodes: [], edges: [] };
-    return layoutNodes(graph.nodes, graph.edges);
+  const { initialNodes, edges } = useMemo(() => {
+    if (!graph) return { initialNodes: [] as Node[], edges: [] as Edge[] };
+    const laid = layoutNodes(graph.nodes, graph.edges);
+    return { initialNodes: laid.nodes, edges: laid.edges };
   }, [graph]);
 
+  // Nodes live in state so drags stick; the floating edges recompute from these
+  // live positions, so moving a node re-routes its connections automatically.
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
+
   useEffect(() => {
+    setNodes(initialNodes);
     setSelectedDocId(null);
-  }, [graph]);
+  }, [initialNodes, setNodes]);
 
   if (isLoading) {
     return (
@@ -172,20 +228,24 @@ export function CaseGraph({ graph, isLoading, isError, compact = false }: CaseGr
         <ReactFlow
           nodes={nodes}
           edges={edges}
+          onNodesChange={onNodesChange}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
           onNodeClick={(_event, node) => setSelectedDocId(node.id)}
           fitView
           fitViewOptions={{ padding: 0.3 }}
           defaultEdgeOptions={{ animated: false }}
-          nodesDraggable={false}
           nodesConnectable={false}
           edgesReconnectable={false}
+          zoomOnScroll={false}
+          minZoom={0.4}
+          maxZoom={1.75}
         >
           <Background color="#263650" gap={22} />
           <Controls className="!rounded-md !border-[var(--color-border)] !bg-[var(--color-surface-raised)] !shadow-lg [&_button]:!border-[var(--color-border)] [&_button]:!bg-[var(--color-surface-raised)] [&_button]:!text-[var(--color-foreground-muted)] [&_button:hover]:!bg-[var(--color-surface-hover)]" />
         </ReactFlow>
       </div>
-      <DocumentDetailPanel documentId={selectedDocId} onClose={() => setSelectedDocId(null)} />
+      <DocumentDetailPanel documentId={selectedDocId} caseId={caseId} onClose={() => setSelectedDocId(null)} />
     </>
   );
 }

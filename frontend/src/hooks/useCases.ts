@@ -48,6 +48,17 @@ export function useDetachDocument() {
   });
 }
 
+export function useRenameCase() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ caseId, title }: { caseId: string; title: string }) => api.renameCase(caseId, title),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cases"] });
+    },
+  });
+}
+
 export function useCaseReconciliation(caseId: string | null) {
   return useQuery({
     queryKey: ["reconciliation", caseId],

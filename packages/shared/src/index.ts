@@ -102,17 +102,62 @@ export interface RunSummary {
   created_at: string;
 }
 
-export interface LedgerEntry {
-  supplier_name: string;
-  total_discrepancies: number;
-  total_claim_value: number;
-  claims_count: number;
+// ── Case Ledger (claim lifecycle) ──
+// Mirrors the backend contract: decimal money values are serialized as strings,
+// statuses are lowercase.
+
+export type ClaimLedgerStatus =
+  | "draft"
+  | "submitted"
+  | "under_review"
+  | "approved"
+  | "partially_recovered"
+  | "recovered"
+  | "rejected"
+  | "written_off";
+
+export interface ClaimStatusEvent {
+  id: string;
+  from_status: string | null;
+  to_status: string;
+  recovered_amount: string;
+  note: string | null;
+  created_at: string;
+}
+
+export interface LedgerCase {
+  case_id: string;
+  claim_id: string;
+  title: string | null;
+  status: ClaimLedgerStatus;
+  currency: string;
+  claim_amount: string;
+  recovered_amount: string;
+  outstanding_amount: string;
+  exception_count: number;
+  created_at: string;
+  updated_at: string;
+  history: ClaimStatusEvent[];
+}
+
+export interface LedgerCurrencySummary {
+  currency: string;
+  claim_count: number;
+  total_claimed: string;
+  total_recovered: string;
+  total_outstanding: string;
+  status_counts: Record<string, number>;
 }
 
 export interface LedgerResponse {
-  total_claims: number;
-  total_claim_value: number;
-  by_supplier: LedgerEntry[];
+  summaries: LedgerCurrencySummary[];
+  cases: LedgerCase[];
+}
+
+export interface LedgerUpdateRequest {
+  status: ClaimLedgerStatus;
+  recovered_amount?: number | null;
+  note?: string | null;
 }
 
 // ── Case Graph (slice 3) ──

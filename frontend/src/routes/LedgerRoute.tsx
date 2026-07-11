@@ -1,28 +1,33 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Badge, Button, Card, CardContent, Skeleton } from "@claims/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  Skeleton,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@claims/ui";
+import type { LedgerCase } from "@claims/shared";
 import { PageContainer } from "@/components/PageContainer";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
+import { ClaimStatusDialog } from "@/components/ClaimStatusDialog";
 import { useLedger } from "@/hooks/useLedger";
-import { SupplierBreakdown } from "@/components/SupplierBreakdown";
-import { ClaimTimeline } from "@/components/ClaimTimeline";
-import { LedgerStats } from "@/components/LedgerStats";
-import type { RunSummary } from "@claims/shared";
+import { STATUS_LABEL, STATUS_VARIANT, TERMINAL, formatMoney } from "@/lib/claimStatus";
 
 export function LedgerRoute() {
   const { data, isLoading, isError, isFetching, refetch } = useLedger();
   const navigate = useNavigate();
-  const runs: RunSummary[] = data ?? [];
-  const totalClaimValue = runs.reduce((sum, run) => sum + (run.total_claim_value || 0), 0);
-  const totalDiscrepancies = runs.reduce((sum, run) => sum + (run.total_discrepancies || 0), 0);
-  const completedRuns = runs.filter((run) => run.status === "completed" || run.status === "done").length;
-  const supplierTotals = runs.reduce<Record<string, number>>((acc, run) => {
-    if (run.status !== "completed" && run.status !== "done") return acc;
-    const supplier = run.supplier_name ?? "Unknown";
-    acc[supplier] = (acc[supplier] ?? 0) + (run.total_claim_value || 0);
-    return acc;
-  }, {});
-  const topSupplier = Object.entries(supplierTotals).sort((a, b) => b[1] - a[1])[0];
+  const [selected, setSelected] = useState<LedgerCase | null>(null);
+
+  const summaries = data?.summaries ?? [];
+  const cases = data?.cases ?? [];
 
   return (
     <PageContainer>
@@ -30,7 +35,7 @@ export function LedgerRoute() {
         title="Recovery Ledger"
         label="Ledger"
         labelColor="bg-[var(--color-success)]"
-        description="Cross-run recovery exposure, supplier concentration, and completed claim value."
+        description="Every open claim with its lifecycle status, recovery progress, and outstanding balance."
         actions={
           <Button variant="secondary" size="sm" onClick={() => void refetch()} disabled={isFetching}>
             {isFetching ? "Refreshing..." : "Refresh"}
@@ -43,89 +48,114 @@ export function LedgerRoute() {
           icon="ledger"
           title="Unable to load ledger"
           description="Make sure the backend server is running at localhost:8000."
-          action={{
-            label: "Retry",
-            onClick: () => void refetch(),
-          }}
-        />
-      )}
-
-      {!isError && !isLoading && runs.length === 0 && (
-        <EmptyState
-          icon="ledger"
-          title="No recovery data yet"
-          description="Upload and process invoices to start tracking recovery metrics."
-          action={{
-            label: "Go to Pipeline",
-            onClick: () => navigate("/"),
-          }}
+          action={{ label: "Retry", onClick: () => void refetch() }}
         />
       )}
 
       {!isError && isLoading && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[...Array(3)].map((_, i) => (
               <Card key={i}>
                 <CardContent className="pt-8">
-                  <Skeleton className="h-4 w-24 mb-4" />
+                  <Skeleton className="mb-4 h-4 w-24" />
                   <Skeleton className="h-8 w-32" />
                 </CardContent>
               </Card>
             ))}
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardContent className="pt-8">
-                <Skeleton className="h-64 w-full" />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-8">
-                <Skeleton className="h-64 w-full" />
-              </CardContent>
-            </Card>
-          </div>
+          <Skeleton className="h-64 w-full" />
         </div>
       )}
 
-      {!isError && !isLoading && runs.length > 0 && (
-        <div className="space-y-5">
-          <section className="flex flex-col gap-4 border-y border-[var(--color-border)] py-4 md:flex-row md:items-center md:justify-between">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-success)]" />
-                  <p className="text-[10px] font-[var(--font-mono)] tracking-[0.18em] text-[var(--color-foreground-subtle)] uppercase">
-                    Recovery snapshot
-                  </p>
-                </div>
-                <p className="text-[13px] text-[var(--color-foreground-muted)]">
-                  {completedRuns} processed invoices have produced ${totalClaimValue.toFixed(2)} in recoverable value across {Object.keys(supplierTotals).length} suppliers.
-                </p>
-              </div>
+      {!isError && !isLoading && cases.length === 0 && (
+        <EmptyState
+          icon="ledger"
+          title="No claims yet"
+          description="Reconcile a case with recoverable exceptions to open a claim in the ledger."
+          action={{ label: "Go to Cases", onClick: () => navigate("/graph") }}
+        />
+      )}
 
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="success">{totalDiscrepancies} discrepancies</Badge>
-                {topSupplier ? (
-                  <Badge variant="neutral">
-                    Top supplier: {topSupplier[0]} (${topSupplier[1].toFixed(2)})
-                  </Badge>
-                ) : null}
-              </div>
-          </section>
-
-          <LedgerStats
-            totalClaimValue={totalClaimValue}
-            totalDiscrepancies={totalDiscrepancies}
-            completedRuns={completedRuns}
-            totalRuns={runs.length}
-          />
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-            <SupplierBreakdown runs={runs} />
-            <ClaimTimeline runs={runs} />
+      {!isError && !isLoading && cases.length > 0 && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {summaries.map((summary) => (
+              <Card key={summary.currency}>
+                <CardContent className="space-y-4 p-5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-label">{summary.currency} exposure</p>
+                    <Badge variant="neutral">{summary.claim_count} claim{summary.claim_count === 1 ? "" : "s"}</Badge>
+                  </div>
+                  <div>
+                    <p className="font-[var(--font-mono)] text-2xl font-semibold tabular-nums text-[var(--color-destructive)]">
+                      {formatMoney(summary.total_outstanding, summary.currency)}
+                    </p>
+                    <p className="mt-1 text-[11px] text-[var(--color-foreground-subtle)]">outstanding</p>
+                  </div>
+                  <div className="flex justify-between border-t border-[var(--color-border)] pt-3 text-xs">
+                    <span className="text-[var(--color-foreground-subtle)]">
+                      Claimed <span className="ml-1 font-[var(--font-mono)] text-[var(--color-foreground)]">{formatMoney(summary.total_claimed, summary.currency)}</span>
+                    </span>
+                    <span className="text-[var(--color-foreground-subtle)]">
+                      Recovered <span className="ml-1 font-[var(--font-mono)] text-[var(--color-success)]">{formatMoney(summary.total_recovered, summary.currency)}</span>
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
+
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Case</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Claimed</TableHead>
+                <TableHead className="text-right">Recovered</TableHead>
+                <TableHead className="text-right">Outstanding</TableHead>
+                <TableHead className="text-right">Exceptions</TableHead>
+                <TableHead className="text-right">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {cases.map((ledgerCase) => {
+                const terminal = TERMINAL.has(ledgerCase.status);
+                return (
+                  <TableRow key={ledgerCase.claim_id}>
+                    <TableCell>
+                      <p className="font-medium text-[var(--color-foreground)]">
+                        {ledgerCase.title?.trim() || `Case ${ledgerCase.case_id}`}
+                      </p>
+                      <p className="font-[var(--font-mono)] text-[11px] text-[var(--color-foreground-subtle)]">#{ledgerCase.case_id}</p>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={STATUS_VARIANT[ledgerCase.status]}>{STATUS_LABEL[ledgerCase.status]}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-[var(--font-mono)] text-xs tabular-nums">{formatMoney(ledgerCase.claim_amount, ledgerCase.currency)}</TableCell>
+                    <TableCell className="text-right font-[var(--font-mono)] text-xs tabular-nums text-[var(--color-success)]">{formatMoney(ledgerCase.recovered_amount, ledgerCase.currency)}</TableCell>
+                    <TableCell className="text-right font-[var(--font-mono)] text-xs tabular-nums text-[var(--color-destructive)]">{formatMoney(ledgerCase.outstanding_amount, ledgerCase.currency)}</TableCell>
+                    <TableCell className="text-right font-[var(--font-mono)] text-xs tabular-nums">{ledgerCase.exception_count}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={terminal}
+                        onClick={() => setSelected(ledgerCase)}
+                        title={terminal ? "This claim is in a final state" : "Advance claim status"}
+                      >
+                        {terminal ? "Closed" : "Update"}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         </div>
       )}
+
+      <ClaimStatusDialog ledgerCase={selected} onClose={() => setSelected(null)} />
     </PageContainer>
   );
 }

@@ -4,6 +4,8 @@ import type {
   RunResponse,
   RunSummary,
   LedgerResponse,
+  LedgerCase,
+  LedgerUpdateRequest,
   GraphResponse,
   CaseSummary,
   DocumentSummary,
@@ -100,6 +102,12 @@ export const api = {
   getLedger: (): Promise<LedgerResponse> =>
     request<LedgerResponse>("/ledger"),
 
+  updateCaseLedger: (caseId: string, body: LedgerUpdateRequest): Promise<LedgerCase> =>
+    request<LedgerCase>(`/cases/${caseId}/ledger`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+
   getGraph: (): Promise<GraphResponse> =>
     request<GraphResponse>("/documents/graph"),
 
@@ -108,6 +116,12 @@ export const api = {
 
   getCaseGraph: (caseId: string): Promise<GraphResponse> =>
     request<GraphResponse>(`/cases/${caseId}/graph`),
+
+  renameCase: (caseId: string, title: string): Promise<CaseSummary> =>
+    request<CaseSummary>(`/cases/${caseId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ title }),
+    }),
 
   attachDocument: (caseId: string, documentId: string): Promise<GraphResponse> =>
     request<GraphResponse>(`/cases/${caseId}/documents`, {

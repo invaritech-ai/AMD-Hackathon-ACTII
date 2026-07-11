@@ -1,7 +1,10 @@
+import { useEffect, useState } from "react";
 import type { CaseSummary, ReconciliationResponse } from "@claims/shared";
 import { Badge, Button, cn } from "@claims/ui";
 import { Link } from "react-router-dom";
+import { Check, Pencil, X } from "lucide-react";
 import { caseLabel } from "@/lib/caseLabel";
+import { useRenameCase } from "@/hooks/useCases";
 
 interface CaseWorkspaceHeaderProps {
   caseItem: CaseSummary | null;
@@ -20,6 +23,27 @@ export function CaseWorkspaceHeader({ caseItem, index, isLoading, reconciliation
   const label = caseItem ? caseLabel(caseItem, index) : null;
   const title = label?.title ?? (isLoading ? "Loading case" : "Select a case");
 
+  const renameCase = useRenameCase();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+
+  // Drop out of edit mode whenever the selected case changes.
+  useEffect(() => setEditing(false), [caseItem?.case_id]);
+
+  const startEdit = () => {
+    if (!caseItem) return;
+    setDraft(caseItem.title ?? "");
+    setEditing(true);
+  };
+
+  const save = () => {
+    if (!caseItem) return;
+    const next = draft.trim();
+    setEditing(false);
+    if (next === (caseItem.title ?? "")) return; // no-op, incl. clearing an already-derived name
+    renameCase.mutate({ caseId: caseItem.case_id, title: next });
+  };
+
   return (
     <div className="mb-4 flex min-h-14 items-start justify-between gap-4 border-b border-[var(--color-border)] pb-4">
       <div className="min-w-0">
@@ -29,7 +53,35 @@ export function CaseWorkspaceHeader({ caseItem, index, isLoading, reconciliation
             <span className="font-[var(--font-mono)] text-[10px] tracking-[0.06em] text-[var(--color-foreground-subtle)]">#{label.ref}</span>
           )}
         </div>
-        <h2 className="mt-1 truncate text-xl font-semibold tracking-[-0.015em] text-[var(--color-foreground)]">{title}</h2>
+        {caseItem && editing ? (
+          <div className="mt-1 flex items-center gap-1.5">
+            <input
+              autoFocus
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") save();
+                if (event.key === "Escape") setEditing(false);
+              }}
+              placeholder={label?.title}
+              aria-label="Case name"
+              className="w-full max-w-sm rounded-md border border-[var(--color-primary-border)] bg-[var(--color-surface-raised)] px-2 py-1 text-xl font-semibold tracking-[-0.015em] text-[var(--color-foreground)] outline-none placeholder:text-[var(--color-foreground-subtle)]"
+            />
+            <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={save} aria-label="Save case name" className="rounded p-1 text-[var(--color-success)] hover:bg-[var(--color-surface-hover)]">
+              <Check className="h-4 w-4" />
+            </button>
+            <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => setEditing(false)} aria-label="Cancel rename" className="rounded p-1 text-[var(--color-foreground-subtle)] hover:bg-[var(--color-surface-hover)]">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        ) : caseItem ? (
+          <button type="button" onClick={startEdit} title="Rename case" className="group mt-1 flex max-w-full items-center gap-2 text-left">
+            <h2 className="truncate text-xl font-semibold tracking-[-0.015em] text-[var(--color-foreground)]">{title}</h2>
+            <Pencil className="h-3.5 w-3.5 shrink-0 text-[var(--color-foreground-subtle)] opacity-0 transition-opacity group-hover:opacity-100" />
+          </button>
+        ) : (
+          <h2 className="mt-1 truncate text-xl font-semibold tracking-[-0.015em] text-[var(--color-foreground)]">{title}</h2>
+        )}
         {caseItem ? (
           <p className="mt-1 text-[12px] text-[var(--color-foreground-muted)]">
             {label?.anchor ? (

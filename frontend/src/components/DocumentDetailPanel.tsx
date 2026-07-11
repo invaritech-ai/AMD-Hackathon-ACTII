@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { marked } from "marked";
-import { SlideOver, SlideOverContent, SlideOverDescription, SlideOverTitle, Badge, Spinner } from "@claims/ui";
+import { Unlink } from "lucide-react";
+import { SlideOver, SlideOverContent, SlideOverDescription, SlideOverTitle, Badge, Button, Spinner } from "@claims/ui";
 import { api } from "@/lib/api";
+import { useDetachDocument } from "@/hooks/useCases";
 import type { DocType } from "@claims/shared";
 
 const typeColors: Record<DocType, string> = {
@@ -97,14 +99,14 @@ function StructuredData({ data }: { data: JsonRecord }) {
 
       {nestedRecords.map(([key, value]) => (
         <div key={key} className="rounded border border-[var(--color-border)] bg-[var(--color-background)]/30 p-4">
-          <p className="mb-3 text-[9px] font-[var(--font-mono)] uppercase tracking-[0.18em] text-[var(--color-foreground-subtle)]">
+          <p className="mb-2 text-[9px] font-[var(--font-mono)] uppercase tracking-[0.18em] text-[var(--color-foreground-subtle)]">
             {humanizeKey(key)}
           </p>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="divide-y divide-[var(--color-border)]">
             {Object.entries(value as JsonRecord).map(([nestedKey, nestedValue]) => (
-              <div key={nestedKey} className="flex justify-between gap-4 border-b border-[var(--color-border)] py-2 text-xs">
+              <div key={nestedKey} className="flex items-center justify-between gap-4 py-2 text-xs first:pt-0 last:pb-0">
                 <span className="text-[var(--color-foreground-subtle)]">{humanizeKey(nestedKey)}</span>
-                <span className="text-right font-[var(--font-mono)] text-[var(--color-foreground)]">{formatValue(nestedValue)}</span>
+                <span className="break-all text-right font-[var(--font-mono)] text-[var(--color-foreground)]">{formatValue(nestedValue)}</span>
               </div>
             ))}
           </div>
@@ -150,15 +152,22 @@ function StructuredData({ data }: { data: JsonRecord }) {
 
 interface DocumentDetailPanelProps {
   documentId: string | null;
+  caseId?: string | null;
   onClose: () => void;
 }
 
-export function DocumentDetailPanel({ documentId, onClose }: DocumentDetailPanelProps) {
+export function DocumentDetailPanel({ documentId, caseId, onClose }: DocumentDetailPanelProps) {
   const { data: doc, isLoading, isError } = useQuery({
     queryKey: ["document", documentId],
     queryFn: () => api.getDocument(documentId!),
     enabled: !!documentId,
   });
+
+  const detachDocument = useDetachDocument();
+  const handleDetach = () => {
+    if (!caseId || !documentId) return;
+    detachDocument.mutate({ caseId, documentId }, { onSuccess: onClose }); // node leaves the graph, so close
+  };
 
   const extractedText = doc?.extracted_text?.trim() ?? "";
   const extractedData = isRecord(doc?.extracted_json) ? doc.extracted_json : null;
@@ -166,7 +175,7 @@ export function DocumentDetailPanel({ documentId, onClose }: DocumentDetailPanel
 
   return (
     <SlideOver open={!!documentId} onOpenChange={(open: boolean) => !open && onClose()}>
-      <SlideOverContent className="max-w-3xl">
+      <SlideOverContent className="max-w-2xl">
         <SlideOverTitle className="sr-only">
           {isLoading ? "Loading document details" : isError || !doc ? "Document details unavailable" : doc.filename}
         </SlideOverTitle>
@@ -208,6 +217,18 @@ export function DocumentDetailPanel({ documentId, onClose }: DocumentDetailPanel
                   <Badge variant={doc.status === "classified" ? "success" : "info"}>{doc.status}</Badge>
                 </div>
               </div>
+              {caseId && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleDetach}
+                  disabled={detachDocument.isPending}
+                  className="w-fit"
+                >
+                  <Unlink className="h-3.5 w-3.5" />
+                  {detachDocument.isPending ? "Detaching..." : "Detach from case"}
+                </Button>
+              )}
             </div>
 
             {hasPreview && (

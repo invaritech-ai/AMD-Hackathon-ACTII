@@ -6,11 +6,14 @@ import { caseScopedPath, type CasePage } from "@/lib/caseRoutes";
 interface CaseSelectorProps {
   cases?: CaseSummary[];
   currentCaseId: string;
-  page: CasePage;
   isLoading: boolean;
+  // URL-scoped pages (discrepancies/claims) navigate on change; the graph page
+  // is state-driven, so it passes onSelect instead of a page.
+  page?: CasePage;
+  onSelect?: (caseId: string) => void;
 }
 
-export function CaseSelector({ cases, currentCaseId, page, isLoading }: CaseSelectorProps) {
+export function CaseSelector({ cases, currentCaseId, page, onSelect, isLoading }: CaseSelectorProps) {
   const navigate = useNavigate();
 
   return (
@@ -22,7 +25,9 @@ export function CaseSelector({ cases, currentCaseId, page, isLoading }: CaseSele
         aria-label="Select case"
         value={currentCaseId}
         disabled={isLoading || !cases?.length}
-        onChange={(event) => navigate(caseScopedPath(event.target.value, page))}
+        onChange={(event) =>
+          onSelect ? onSelect(event.target.value) : page && navigate(caseScopedPath(event.target.value, page))
+        }
         className="h-9 min-w-44 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-raised)] px-3 text-[12px] font-semibold text-[var(--color-foreground)] outline-none transition-[border-color,box-shadow] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[rgb(246_166_35_/_0.16)] disabled:opacity-50"
       >
         {cases?.map((caseItem, index) => (

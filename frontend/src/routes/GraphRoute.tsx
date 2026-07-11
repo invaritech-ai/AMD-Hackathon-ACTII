@@ -1,16 +1,21 @@
 import { useEffect, useState } from "react";
+import { FolderOpen } from "lucide-react";
 import type { DocType } from "@claims/shared";
+import { Button, SlideOver, SlideOverContent, SlideOverDescription, SlideOverTitle } from "@claims/ui";
 import { PageContainer } from "@/components/PageContainer";
+import { PageHeader } from "@/components/PageHeader";
 import { CaseGraph } from "@/components/CaseGraph";
-import { useCaseGraph, useCaseReconciliation, useCases, useRunReconciliation } from "@/hooks/useCases";
-import { useDocuments } from "@/hooks/useDocuments";
-import { CaseRail } from "@/components/cases/CaseRail";
+import { CaseSelector } from "@/components/cases/CaseSelector";
 import { CaseWorkspaceHeader } from "@/components/cases/CaseWorkspaceHeader";
 import { FilesLibrary } from "@/components/cases/FilesLibrary";
-import { PageHeader } from "@/components/PageHeader";
+import { useCaseGraph, useCaseReconciliation, useCases, useRunReconciliation } from "@/hooks/useCases";
+import { useDocuments } from "@/hooks/useDocuments";
+
+const bezel = "workspace-bezel flex h-full min-h-0 items-center justify-center rounded-xl px-6 text-center";
 
 export function GraphRoute() {
   const [activeCaseId, setActiveCaseId] = useState<string | null>(null);
+  const [filesOpen, setFilesOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [type, setType] = useState<DocType | "all">("all");
   const [unassignedOnly, setUnassignedOnly] = useState(false);
@@ -39,6 +44,7 @@ export function GraphRoute() {
 
   const activeIndex = casesQuery.data?.findIndex((caseItem) => caseItem.case_id === activeCaseId) ?? -1;
   const activeCase = activeIndex >= 0 ? casesQuery.data?.[activeIndex] : undefined;
+  const fileCount = documentsQuery.data?.length ?? 0;
 
   return (
     <PageContainer className="flex h-[calc(100dvh-3rem)] min-h-0 flex-col">
@@ -46,45 +52,58 @@ export function GraphRoute() {
         title="Case Command Center"
         label="Cases"
         labelColor="bg-[var(--color-accent)]"
-        description="Focus on one investigation at a time, then keep the shared evidence library clean and usable."
+        actions={
+          <>
+            <CaseSelector
+              cases={casesQuery.data}
+              currentCaseId={activeCaseId ?? ""}
+              onSelect={setActiveCaseId}
+              isLoading={casesQuery.isLoading}
+            />
+            <Button variant="secondary" size="sm" onClick={() => setFilesOpen(true)}>
+              <FolderOpen className="h-4 w-4" />
+              Files
+              <span className="ml-1 rounded-[4px] bg-[var(--color-surface-hover)] px-1.5 py-0.5 font-[var(--font-mono)] text-[10px] tabular-nums text-[var(--color-foreground-muted)]">
+                {fileCount}
+              </span>
+            </Button>
+          </>
+        }
       />
-      <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1.55fr)_minmax(0,1fr)] gap-5">
-        <div className="grid min-h-0 gap-5 xl:grid-cols-[200px_minmax(0,1fr)]">
-          <CaseRail cases={casesQuery.data} activeCaseId={activeCaseId} onSelect={setActiveCaseId} isLoading={casesQuery.isLoading} compact />
 
-        <section className="flex min-w-0 min-h-0 flex-col">
-          <CaseWorkspaceHeader
-            caseItem={activeCase ?? null}
-            index={activeIndex < 0 ? 0 : activeIndex}
-            isLoading={casesQuery.isLoading}
-            reconciliation={reconciliationQuery.data}
-            isReconciling={runReconciliation.isPending}
-            onReconcile={activeCaseId ? () => runReconciliation.mutate(activeCaseId) : undefined}
-          />
-          {casesQuery.isLoading ? (
-            <div className="workspace-bezel flex h-full min-h-0 items-center justify-center rounded-xl px-6 text-center">
-              <p className="max-w-xs text-[13px] leading-relaxed text-[var(--color-foreground-muted)]">Loading cases...</p>
-            </div>
-          ) : casesQuery.isError ? (
-            <div className="workspace-bezel flex h-full min-h-0 items-center justify-center rounded-xl px-6 text-center">
-              <p className="max-w-xs text-[13px] leading-relaxed text-[var(--color-destructive)]">
-                Cases could not be loaded.
-              </p>
-            </div>
-          ) : activeCaseId ? (
-            <CaseGraph graph={graphQuery.data} isLoading={graphQuery.isLoading} isError={graphQuery.isError} compact />
-          ) : (
-            <div className="workspace-bezel flex h-full min-h-0 items-center justify-center rounded-xl px-6 text-center">
-              <p className="max-w-xs text-[13px] leading-relaxed text-[var(--color-foreground-muted)]">
-                Process related documents to create the first evidence case.
-              </p>
-            </div>
-          )}
-        </section>
+      <CaseWorkspaceHeader
+        caseItem={activeCase ?? null}
+        index={activeIndex < 0 ? 0 : activeIndex}
+        isLoading={casesQuery.isLoading}
+        reconciliation={reconciliationQuery.data}
+        isReconciling={runReconciliation.isPending}
+        onReconcile={activeCaseId ? () => runReconciliation.mutate(activeCaseId) : undefined}
+      />
 
-        </div>
+      <div className="min-h-0 flex-1">
+        {casesQuery.isLoading ? (
+          <div className={bezel}>
+            <p className="max-w-xs text-[13px] leading-relaxed text-[var(--color-foreground-muted)]">Loading cases...</p>
+          </div>
+        ) : casesQuery.isError ? (
+          <div className={bezel}>
+            <p className="max-w-xs text-[13px] leading-relaxed text-[var(--color-destructive)]">Cases could not be loaded.</p>
+          </div>
+        ) : activeCaseId ? (
+          <CaseGraph graph={graphQuery.data} isLoading={graphQuery.isLoading} isError={graphQuery.isError} caseId={activeCaseId} compact />
+        ) : (
+          <div className={bezel}>
+            <p className="max-w-xs text-[13px] leading-relaxed text-[var(--color-foreground-muted)]">
+              Process related documents to create the first evidence case.
+            </p>
+          </div>
+        )}
+      </div>
 
-        <aside className="min-h-0">
+      <SlideOver open={filesOpen} onOpenChange={setFilesOpen}>
+        <SlideOverContent className="max-w-2xl">
+          <SlideOverTitle className="sr-only">Files library</SlideOverTitle>
+          <SlideOverDescription className="sr-only">Search, filter, and attach every uploaded document.</SlideOverDescription>
           <FilesLibrary
             documents={documentsQuery.data}
             isLoading={documentsQuery.isLoading}
@@ -96,10 +115,9 @@ export function GraphRoute() {
             unassignedOnly={unassignedOnly}
             onUnassignedChange={setUnassignedOnly}
             activeCaseId={activeCaseId}
-            compact
           />
-        </aside>
-      </div>
+        </SlideOverContent>
+      </SlideOver>
     </PageContainer>
   );
 }
