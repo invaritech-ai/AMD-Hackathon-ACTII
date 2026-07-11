@@ -3,9 +3,13 @@
 from __future__ import annotations
 
 import json
+import random
+import tempfile
 from decimal import Decimal
 from pathlib import Path
 
+import pypdfium2 as pdfium
+from PIL import Image, ImageEnhance, ImageFilter
 from reportlab import rl_config
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -535,3 +539,75 @@ def extract_pdf_text(path: Path) -> str:
 
     with pdfplumber.open(path) as pdf:
         return "\n".join(page.extract_text() or "" for page in pdf.pages)
+
+
+def render_scan(source_pdf: Path, target: Path, seed: int) -> None:
+    pdf = pdfium.PdfDocument(str(source_pdf))
+    try:
+        page = pdf[0]
+        image = page.render(scale=2.25).to_pil().convert("RGB")
+    finally:
+        pdf.close()
+
+    rng = random.Random(seed)
+    image = ImageEnhance.Contrast(image).enhance(0.96)
+    image = ImageEnhance.Brightness(image).enhance(1.01)
+    image = image.rotate(
+        rng.uniform(-0.55, 0.55),
+        resample=Image.Resampling.BICUBIC,
+        expand=True,
+        fillcolor=(242, 241, 236),
+    )
+    image = image.filter(ImageFilter.GaussianBlur(radius=0.18))
+    pixels = image.load()
+    for _ in range(2400):
+        x = rng.randrange(image.width)
+        y = rng.randrange(image.height)
+        shade = rng.randrange(205, 241)
+        pixels[x, y] = (shade, shade, shade)
+
+    target.parent.mkdir(parents=True, exist_ok=True)
+    suffix = target.suffix.lower()
+    if suffix == ".jpg":
+        image.save(
+            target,
+            "JPEG",
+            quality=88,
+            optimize=False,
+            progressive=False,
+            dpi=(180, 180),
+        )
+    elif suffix == ".png":
+        image.save(target, "PNG", compress_level=6, dpi=(180, 180))
+    elif suffix == ".pdf":
+        image.save(target, "PDF", resolution=180.0, quality=90)
+    else:
+        raise ValueError(f"unsupported scan output: {target}")
+
+
+def generate_case(case: dict, output_root: Path = GENERATED_DIR) -> list[Path]:
+    validate_cases(load_cases())
+    case_dir = output_root / case["case_id"]
+    case_dir.mkdir(parents=True, exist_ok=True)
+    generated: list[Path] = []
+    scan_kinds = {
+        ("case-02", "delivery_docket"),
+        ("case-03", "invoice"),
+        ("case-03", "delivery_docket"),
+    }
+
+    for index, (kind, filename) in enumerate(case["outputs"].items(), start=1):
+        target = case_dir / filename
+        if (case["case_id"], kind) in scan_kinds:
+            with tempfile.TemporaryDirectory() as temporary:
+                source = Path(temporary) / f"{kind}.pdf"
+                render_text_pdf(case, kind, source)
+                render_scan(
+                    source,
+                    target,
+                    seed=1000 + index + int(case["case_id"][-1]) * 100,
+                )
+        else:
+            render_text_pdf(case, kind, target)
+        generated.append(target)
+    return generated

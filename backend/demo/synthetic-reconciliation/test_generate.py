@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 import generate
+from claims_recovery.services.ingestion import extract_native_text
 
 
 def test_loads_and_validates_three_distinct_cases():
@@ -73,3 +74,20 @@ def test_text_pdf_contains_case_identifiers_and_amounts(tmp_path: Path):
         text = generate.extract_pdf_text(target)
         assert target.stat().st_size > 1000
         assert all(needle in text for needle in needles)
+
+
+def test_scan_outputs_have_no_native_text_and_expected_formats(tmp_path: Path):
+    case_two, case_three = generate.load_cases()[1:]
+    case_two_paths = generate.generate_case(case_two, tmp_path)
+    case_three_paths = generate.generate_case(case_three, tmp_path)
+
+    pod_jpg = next(path for path in case_two_paths if path.suffix == ".jpg")
+    scanned_invoice = next(
+        path for path in case_three_paths if path.name.endswith("_scanned.pdf")
+    )
+    pod_png = next(path for path in case_three_paths if path.suffix == ".png")
+
+    assert extract_native_text(pod_jpg) is None
+    assert extract_native_text(pod_png) is None
+    assert extract_native_text(scanned_invoice) is None
+    assert generate.extract_pdf_text(scanned_invoice).strip() == ""
