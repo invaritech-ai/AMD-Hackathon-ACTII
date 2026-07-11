@@ -6,13 +6,17 @@ const terminalStages = new Set<ProcessingStage>(["classified", "failed"]);
 
 async function waitForDocument(
   documentId: string,
-  updateQueueItem: (patch: { stage: ProcessingStage; progress: number; error?: string }) => void
+  updateQueueItem: (patch: { stage: ProcessingStage; progress?: number; error?: string }) => void
 ) {
   while (true) {
     const doc = await api.getDocument(documentId);
     const stage = doc.status === "error" ? "failed" : doc.status as ProcessingStage;
-    const progress = stage === "queued" ? 10 : stage === "extracting" ? 45 : stage === "analyzing" ? 80 : 100;
-    updateQueueItem({ stage, progress, error: stage === "failed" ? `Processing failed: ${documentId}` : undefined });
+    const progress = stage === "queued" ? 10 : stage === "extracting" ? 45 : stage === "analyzing" ? 80 : stage === "classified" ? 100 : undefined;
+    updateQueueItem({
+      stage,
+      ...(progress === undefined ? {} : { progress }),
+      ...(stage === "failed" ? { error: `Processing failed: ${documentId}` } : {}),
+    });
     if (terminalStages.has(stage)) return { ...doc, status: stage };
     await new Promise((r) => setTimeout(r, 1000));
   }
@@ -33,7 +37,7 @@ export function useUpload() {
           const document = await waitForDocument(response.document_id, (patch) => updateItem(item.id, patch));
           return { documentId: response.document_id, failed: document.status === "failed" };
         } catch (error) {
-          updateItem(item.id, { stage: "failed", progress: 100, error: error instanceof Error ? error.message : "Upload failed" });
+          updateItem(item.id, { stage: "failed", error: error instanceof Error ? error.message : "Upload failed" });
           return { documentId: null, failed: true };
         }
       }));
@@ -45,7 +49,11 @@ export function useUpload() {
       return { run_id: run.id, document_count: documentIds.length };
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cases"] });
+      queryClient.invalidateQueries({ queryKey: ["case-graph"] });
+      queryClient.invalidateQueries({ queryKey: ["documents"] });
       queryClient.invalidateQueries({ queryKey: ["graph"] });
+      queryClient.invalidateQueries({ queryKey: ["runs"] });
     },
   });
 }

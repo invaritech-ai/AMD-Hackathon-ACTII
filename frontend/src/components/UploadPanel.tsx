@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { Upload, FileText, X } from "lucide-react";
-import { Button, Card, CardContent, Spinner, cn } from "@claims/ui";
+import { Badge, Button, Card, CardContent, ScrollArea, Spinner, cn } from "@claims/ui";
 import { useUpload } from "@/hooks/useUpload";
 import { PipelineStepper } from "./PipelineStepper";
 import { useToast } from "@/store/toastStore";
@@ -9,6 +9,8 @@ export function UploadPanel() {
   const [files, setFiles] = useState<File[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const [runId, setRunId] = useState<string | null>(null);
+  const [pendingUploadCount, setPendingUploadCount] = useState<number | null>(null);
+  const [uploadErrorMessage, setUploadErrorMessage] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const upload = useUpload();
   const toast = useToast();
@@ -29,25 +31,34 @@ export function UploadPanel() {
   }, []);
 
   const removeFile = (index: number) => setFiles((prev) => prev.filter((_, i) => i !== index));
+  const openFilePicker = () => inputRef.current?.click();
 
   const handleUpload = () => {
     if (files.length === 0) return;
     const fileCount = files.length;
+    setPendingUploadCount(fileCount);
+    setUploadErrorMessage(null);
     upload.mutate(files, {
       onSuccess: (data) => {
         setRunId(data.run_id);
         toast.success("Pipeline Started", `Processing ${fileCount} file(s)`);
+        setPendingUploadCount(null);
       },
       onError: (error) => {
+        setUploadErrorMessage(error.message);
         toast.error("Upload Failed", error.message);
+        setPendingUploadCount(null);
       },
     });
     setFiles([]);
+    if (inputRef.current) {
+      inputRef.current.value = "";
+    }
   };
 
   if (runId) {
     return (
-      <Card>
+      <Card className="rounded-xl">
         <CardContent className="py-8">
           <PipelineStepper runId={runId} />
         </CardContent>
@@ -57,19 +68,31 @@ export function UploadPanel() {
 
   return (
     <div className="space-y-6">
-      <div
-        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files); }}
-        onClick={() => inputRef.current?.click()}
+      <Card
         className={cn(
-          "relative flex w-full cursor-pointer flex-col items-center justify-center min-h-[320px] px-8 py-20 transition-all duration-200 rounded-lg",
+          "overflow-hidden rounded-xl border-dashed transition-all duration-200",
           dragOver
-            ? "marching-ants bg-[rgb(245_158_11_/_0.05)]"
-            : "border border-dashed border-[var(--color-border)] hover:border-[var(--color-primary)] hover:bg-[var(--color-surface)]"
+            ? "border-[var(--color-primary)] bg-[rgb(245_158_11_/_0.05)] shadow-[0_0_0_1px_rgb(245_158_11_/_0.18)]"
+            : "border-[var(--color-border)] hover:border-[var(--color-primary)]"
         )}
       >
-        <div
+        <CardContent
+          role="button"
+          tabIndex={0}
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files); }}
+          onClick={openFilePicker}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              openFilePicker();
+            }
+          }}
+          aria-label="Select documents to upload"
+          className="relative flex min-h-[320px] w-full cursor-pointer flex-col items-center justify-center px-8 py-20 text-center"
+        >
+          <div
           className={cn(
             "relative flex h-20 w-20 items-center justify-center rounded-full border mb-6 transition-all duration-200",
             dragOver
@@ -86,62 +109,141 @@ export function UploadPanel() {
             )}
           />
         </div>
-        <p className="text-sm text-[var(--color-foreground)] font-medium">
-          Drag and drop invoice PDFs here
-        </p>
-        <p className="text-xs text-[var(--color-foreground-subtle)] mt-1 font-[var(--font-mono)]">
-          or click to browse — PDF, image, or spreadsheet
-        </p>
-        <input
-          ref={inputRef}
-          type="file"
+          <p className="text-sm font-medium text-[var(--color-foreground)]">
+            Drag and drop invoice PDFs here
+          </p>
+          <p className="mt-1 text-xs font-[var(--font-mono)] text-[var(--color-foreground-subtle)]">
+            or click to browse — PDF, image, or spreadsheet
+          </p>
+          <div className="mt-5 flex flex-wrap justify-center gap-2">
+            <Badge variant="neutral">PDF</Badge>
+            <Badge variant="neutral">Word</Badge>
+            <Badge variant="neutral">Spreadsheet</Badge>
+            <Badge variant="neutral">CSV</Badge>
+            <Badge variant="neutral">Images</Badge>
+          </div>
+          <input
+            ref={inputRef}
+            type="file"
             accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.jpg,.jpeg,.png,.tiff,.tif"
-          multiple
-          className="hidden"
-          onChange={(e) => e.target.files && handleFiles(e.target.files)}
-        />
-      </div>
+            multiple
+            className="hidden"
+            onChange={(e) => e.target.files && handleFiles(e.target.files)}
+          />
+        </CardContent>
+      </Card>
 
-      {files.length > 0 && (
-        <div className="space-y-3">
-          {files.map((file, i) => (
-            <div
-              key={i}
-              className="flex items-center gap-4 bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-5 py-3"
-            >
-              <FileText className="h-4 w-4 shrink-0 text-[var(--color-foreground-subtle)]" />
-              <span className="flex-1 text-sm text-[var(--color-foreground)] truncate">{file.name}</span>
-              <span className="font-[var(--font-mono)] text-[11px] text-[var(--color-foreground-subtle)]">
-                {(file.size / 1024).toFixed(0)}KB
-              </span>
-              <button
-                onClick={(e) => { e.stopPropagation(); removeFile(i); }}
-                className="text-[var(--color-foreground-subtle)] hover:text-[var(--color-destructive)] transition-colors"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          ))}
-
-          <Button onClick={handleUpload} disabled={upload.isPending} className="w-full" size="lg" variant="primary">
-            {upload.isPending ? (
-              <>
-                <Spinner className="h-4 w-4" />
-                Uploading {files.length} file{files.length > 1 ? "s" : ""}...
-              </>
-            ) : (
-              `Start Analysis — ${files.length} file${files.length > 1 ? "s" : ""}`
-            )}
-          </Button>
-
-          {upload.isError && (
-            <div className="border border-[rgb(239_68_68_/_0.25)] bg-[rgb(239_68_68_/_0.1)] rounded px-5 py-4 mt-4">
-              <p className="text-xs text-[var(--color-destructive)] font-[var(--font-mono)]">
-                {(upload.error as Error).message}
+      {upload.isPending && pendingUploadCount !== null && (
+        <Card className="rounded-xl border-[var(--color-border)] shadow-none">
+          <CardContent className="flex items-center gap-3 p-4">
+            <Spinner className="h-4 w-4" />
+            <div>
+              <p className="text-sm font-medium text-[var(--color-foreground)]">
+                Uploading {pendingUploadCount} file{pendingUploadCount === 1 ? "" : "s"}
+              </p>
+              <p className="mt-0.5 text-xs text-[var(--color-foreground-subtle)]">
+                Picker selections clear immediately while upload mutation runs.
               </p>
             </div>
-          )}
-        </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {uploadErrorMessage && (
+        <Card className="rounded-xl border-[rgb(239_68_68_/_0.25)] bg-[rgb(239_68_68_/_0.08)] shadow-none">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Badge variant="high">Upload error</Badge>
+              <span className="text-[10px] font-[var(--font-mono)] text-[var(--color-destructive)]">
+                Retry required
+              </span>
+            </div>
+            <p
+              className="mt-2 text-xs font-[var(--font-mono)] text-[var(--color-destructive)]"
+              aria-label={`Upload error ${uploadErrorMessage}`}
+            >
+              {uploadErrorMessage}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {files.length > 0 && (
+        <Card className="overflow-hidden rounded-xl">
+          <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3">
+            <div>
+              <p className="text-label">Upload batch</p>
+              <p className="mt-0.5 text-sm font-medium text-[var(--color-foreground)]">
+                {files.length} file{files.length === 1 ? "" : "s"} ready for preprocessing
+              </p>
+            </div>
+            <Badge variant="neutral">{files.length}</Badge>
+          </div>
+
+          <ScrollArea className="max-h-72">
+            <div className="space-y-3 p-4">
+              {files.map((file, i) => (
+                <Card
+                  key={`${file.name}-${file.size}-${i}`}
+                  className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] shadow-none"
+                >
+                  <CardContent className="flex items-center gap-4 p-4">
+                    <FileText className="h-4 w-4 shrink-0 text-[var(--color-foreground-subtle)]" />
+                    <div className="min-w-0 flex-1">
+                      <p
+                        className="truncate text-sm text-[var(--color-foreground)]"
+                        aria-label={`File name ${file.name}`}
+                      >
+                        {file.name}
+                      </p>
+                      <p className="mt-1 text-[11px] font-[var(--font-mono)] text-[var(--color-foreground-subtle)]">
+                        {(file.size / 1024).toFixed(0)}KB
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeFile(i);
+                      }}
+                      className="h-8 px-2"
+                      aria-label={`Remove ${file.name} from upload list`}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </ScrollArea>
+
+          <CardContent className="space-y-4 border-t border-[var(--color-border)] pt-4">
+            <Button
+              onClick={handleUpload}
+              disabled={upload.isPending}
+              className="w-full"
+              size="lg"
+              variant="primary"
+              aria-label={
+                upload.isPending
+                  ? `Uploading ${files.length} file${files.length === 1 ? "" : "s"}`
+                  : `Start analysis for ${files.length} file${files.length === 1 ? "" : "s"}`
+              }
+            >
+              {upload.isPending ? (
+                <>
+                  <Spinner className="h-4 w-4" />
+                  Uploading {files.length} file{files.length > 1 ? "s" : ""}...
+                </>
+              ) : (
+                `Start Analysis — ${files.length} file${files.length > 1 ? "s" : ""}`
+              )}
+            </Button>
+
+          </CardContent>
+        </Card>
       )}
     </div>
   );

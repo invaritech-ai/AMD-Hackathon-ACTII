@@ -1,14 +1,10 @@
-import { useState, useMemo, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ReactFlow,
   Background,
   Controls,
-  useNodesState,
-  useEdgesState,
   type Node,
   type Edge,
-  Handle,
-  Position,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Spinner } from "@claims/ui";
@@ -31,18 +27,10 @@ const typeColorBg: Record<DocType, string> = {
   unknown: "rgb(100 116 139 / 0.15)",
 };
 
-const caseColors = [
-  "rgb(245 158 11 / 0.08)",
-  "rgb(139 92 246 / 0.08)",
-  "rgb(16 185 129 / 0.08)",
-  "rgb(6 182 212 / 0.08)",
-  "rgb(239 68 68 / 0.08)",
-];
-
 function layoutNodes(
   graphNodes: { id: string; type: DocType; filename: string; ids: string[]; case_id: string }[],
   graphEdges: { source: string; target: string; shared_ids: string[] }[]
-): { nodes: Node[]; edges: Edge[]; caseZones: { id: string; bounds: { x: number; y: number; w: number; h: number }; color: string }[] } {
+): { nodes: Node[]; edges: Edge[] } {
   const cases = new Map<string, string[]>();
   for (const n of graphNodes) {
     const list = cases.get(n.case_id) ?? [];
@@ -50,7 +38,6 @@ function layoutNodes(
     cases.set(n.case_id, list);
   }
 
-  const caseZones: { id: string; bounds: { x: number; y: number; w: number; h: number }; color: string }[] = [];
   const spacing = 320;
   let caseIdx = 0;
 
@@ -61,12 +48,6 @@ function layoutNodes(
     const cx = (caseIdx % 3) * spacing + 200;
     const cy = Math.floor(caseIdx / 3) * spacing + 150;
     const radius = Math.max(60, nodeIds.length * 25);
-    const pad = 80;
-    caseZones.push({
-      id: caseId,
-      bounds: { x: cx - radius - pad, y: cy - radius - pad, w: (radius + pad) * 2, h: (radius + pad) * 2 },
-      color: caseColors[caseIdx % caseColors.length],
-    });
 
     nodeIds.forEach((id, i) => {
       const angle = (2 * Math.PI * i) / nodeIds.length;
@@ -105,7 +86,7 @@ function layoutNodes(
     labelBgBorderRadius: 2,
   }));
 
-  return { nodes, edges, caseZones };
+  return { nodes, edges };
 }
 
 function DocumentNode({ data }: { data: { filename: string; docType: DocType; ids: string[]; caseId: string } }) {
@@ -120,7 +101,6 @@ function DocumentNode({ data }: { data: { filename: string; docType: DocType; id
         boxShadow: `0 0 0 1px ${bg}`,
       }}
     >
-      <Handle type="target" position={Position.Top} style={{ background: color }} />
       <p className="text-[11px] font-[var(--font-mono)] mb-1 truncate max-w-[140px]" style={{ color }}>
         {data.filename}
       </p>
@@ -130,7 +110,6 @@ function DocumentNode({ data }: { data: { filename: string; docType: DocType; id
       >
         {data.docType}
       </span>
-      <Handle type="source" position={Position.Bottom} style={{ background: color }} />
     </div>
   );
 }
@@ -138,28 +117,22 @@ function DocumentNode({ data }: { data: { filename: string; docType: DocType; id
 const nodeTypes = { documentNode: DocumentNode };
 
 interface CaseGraphProps {
-  data?: GraphResponse;
+  graph?: GraphResponse;
   isLoading: boolean;
   isError: boolean;
 }
 
-export function CaseGraph({ data, isLoading, isError }: CaseGraphProps) {
+export function CaseGraph({ graph, isLoading, isError }: CaseGraphProps) {
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
 
-  const initial = useMemo(() => {
-    if (!data) return { nodes: [], edges: [], caseZones: [] };
-    return layoutNodes(data.nodes, data.edges);
-  }, [data]);
-
-  const [nodes, setNodes, onNodesChange] = useNodesState(initial.nodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initial.edges);
+  const { nodes, edges } = useMemo(() => {
+    if (!graph) return { nodes: [], edges: [] };
+    return layoutNodes(graph.nodes, graph.edges);
+  }, [graph]);
 
   useEffect(() => {
-    if (!data) return;
-    const layout = layoutNodes(data.nodes, data.edges);
-    setNodes(layout.nodes);
-    setEdges(layout.edges);
-  }, [data, setNodes, setEdges]);
+    setSelectedDocId(null);
+  }, [graph]);
 
   if (isLoading) {
     return (
@@ -178,7 +151,7 @@ export function CaseGraph({ data, isLoading, isError }: CaseGraphProps) {
     );
   }
 
-  if (!data || data.nodes.length === 0) {
+  if (!graph || graph.nodes.length === 0) {
     return (
       <div className="w-full border border-dashed border-[var(--color-border)] rounded-lg flex items-center justify-center min-h-[500px]">
         <p className="text-sm text-[var(--color-foreground-subtle)] font-[var(--font-mono)]">
@@ -194,14 +167,14 @@ export function CaseGraph({ data, isLoading, isError }: CaseGraphProps) {
         <ReactFlow
           nodes={nodes}
           edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
           nodeTypes={nodeTypes}
           onNodeClick={(_event, node) => setSelectedDocId(node.id)}
-          nodesConnectable={false}
           fitView
           fitViewOptions={{ padding: 0.3 }}
           defaultEdgeOptions={{ animated: false }}
+          nodesDraggable={false}
+          nodesConnectable={false}
+          edgesReconnectable={false}
         >
           <Background color="var(--color-border)" gap={20} />
           <Controls className="[&_button]:!bg-[var(--color-surface)] [&_button]:!border-[var(--color-border)] [&_button]:!text-[var(--color-foreground-subtle)]" />

@@ -1,6 +1,21 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Upload, AlertTriangle, FileText, BarChart3, ChevronLeft, ChevronRight, Activity, GitBranch } from "lucide-react";
-import { cn } from "@claims/ui";
+import { AlertTriangle, FileText, BarChart3, ChevronLeft, ChevronRight, Activity, GitBranch } from "lucide-react";
+import {
+  SidebarProvider,
+  Sidebar,
+  SidebarHeader,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarTrigger,
+  SidebarRail,
+  SidebarInset,
+  useSidebar,
+  cn,
+} from "@claims/ui";
 import { useUIStore } from "@/store/uiStore";
 import { ProcessingQueue } from "@/components/ProcessingQueue";
 
@@ -12,116 +27,112 @@ const navItems = [
   { to: "/ledger", label: "Ledger", icon: BarChart3 },
 ];
 
+function AppSidebarMenu({ pathname }: { pathname: string }) {
+  const { isMobile, setOpenMobile } = useSidebar();
+
+  return (
+    <SidebarMenu>
+      {navItems.map((item) => {
+        const isActive =
+          item.to === "/"
+            ? pathname === "/"
+            : pathname.startsWith(item.to);
+
+        return (
+          <SidebarMenuItem key={item.to}>
+            <SidebarMenuButton
+              asChild
+              isActive={isActive}
+              tooltip={item.label}
+              className={cn(
+                "px-3 text-xs font-medium tracking-[0.05em]",
+                isActive
+                  ? "bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:bg-[var(--color-primary)] hover:text-[var(--color-primary-foreground)]"
+                  : "text-[var(--color-foreground-subtle)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-foreground)]"
+              )}
+            >
+              <NavLink
+                to={item.to}
+                onClick={() => {
+                  if (isMobile) {
+                    setOpenMobile(false);
+                  }
+                }}
+              >
+                <item.icon className="h-4 w-4 shrink-0" />
+                <span>{item.label}</span>
+              </NavLink>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        );
+      })}
+    </SidebarMenu>
+  );
+}
+
 export function Layout({ children }: { children: React.ReactNode }) {
-  const { sidebarCollapsed, toggleSidebar } = useUIStore();
+  const { sidebarCollapsed, setSidebarCollapsed } = useUIStore();
   const location = useLocation();
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[var(--color-background)]">
-      <aside
-        className={cn(
-          "flex flex-col bg-[var(--color-surface)] border-r border-[var(--color-border)] z-10",
-          sidebarCollapsed ? "w-16" : "w-60"
-        )}
-        style={{
-          width: sidebarCollapsed ? "4rem" : "15rem",
-          transition: "width 460ms cubic-bezier(0.22, 1, 0.36, 1)",
-          willChange: "width",
-        }}
-      >
-        <div className="flex h-16 items-center border-b border-[var(--color-border)] px-4">
-          <div
-            className="flex min-w-0 overflow-hidden whitespace-nowrap"
-            style={{
-              maxWidth: sidebarCollapsed ? "0px" : "10rem",
-              opacity: sidebarCollapsed ? 0 : 1,
-              transform: sidebarCollapsed ? "translateX(-0.25rem)" : "translateX(0)",
-              transition: "max-width 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 140ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1)",
-              transitionDelay: sidebarCollapsed ? "0ms" : "120ms",
-            }}
-          >
+    <SidebarProvider
+      open={!sidebarCollapsed}
+      onOpenChange={(open) => setSidebarCollapsed(!open)}
+      className="h-screen overflow-hidden bg-[var(--color-background)]"
+      style={
+        {
+          "--sidebar-width": "15rem",
+          "--sidebar-width-icon": "4rem",
+        } as React.CSSProperties
+      }
+    >
+      <Sidebar collapsible="icon" className="md:z-10">
+        <SidebarHeader className="h-16 flex-row items-center gap-2 border-b border-[var(--color-border)] px-4 py-0">
+          <div className="min-w-0 flex-1 overflow-hidden group-data-[collapsible=icon]:hidden">
             <span className="text-[13px] font-[var(--font-display)] font-semibold text-[var(--color-foreground)]">
               Claims<span className="text-[var(--color-primary)]">Recovery</span>
             </span>
           </div>
-          <button
-            onClick={toggleSidebar}
-            className={cn(
-              "text-[var(--color-foreground-subtle)] hover:text-[var(--color-foreground)] transition-colors duration-150",
-              sidebarCollapsed ? "mx-auto" : "ml-auto"
-            )}
-          >
+          <SidebarTrigger className="hidden md:inline-flex group-data-[collapsible=icon]:mx-auto">
             {sidebarCollapsed ? (
               <ChevronRight className="h-3.5 w-3.5" />
             ) : (
               <ChevronLeft className="h-3.5 w-3.5" />
             )}
-          </button>
-        </div>
+          </SidebarTrigger>
+        </SidebarHeader>
 
-        <nav className="flex-1 space-y-1 p-3">
-          {navItems.map((item) => {
-            const isActive =
-              item.to === "/"
-                ? location.pathname === "/"
-                : location.pathname.startsWith(item.to);
-            return (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2 text-xs font-medium tracking-[0.05em] rounded-md transition-all duration-150",
-                  isActive
-                    ? "bg-[var(--color-primary)] text-[var(--color-primary-foreground)]"
-                    : "text-[var(--color-foreground-subtle)] hover:text-[var(--color-foreground)] hover:bg-[var(--color-surface-hover)]"
-                )}
-              >
-                <item.icon className={cn("h-4 w-4 shrink-0", isActive && "text-[var(--color-primary-foreground)]")} />
-                <span
-                  className="overflow-hidden whitespace-nowrap"
-                  style={{
-                    maxWidth: sidebarCollapsed ? "0px" : "7rem",
-                    opacity: sidebarCollapsed ? 0 : 1,
-                    transform: sidebarCollapsed ? "translateX(-0.25rem)" : "translateX(0)",
-                    transition: "max-width 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 140ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1)",
-                    transitionDelay: sidebarCollapsed ? "0ms" : "120ms",
-                  }}
-                >
-                  {item.label}
-                </span>
-              </NavLink>
-            );
-          })}
-        </nav>
+        <SidebarContent>
+          <SidebarGroup className="p-3">
+            <AppSidebarMenu pathname={location.pathname} />
+          </SidebarGroup>
+        </SidebarContent>
 
-        <div className="border-t border-[var(--color-border)] p-4">
-          <div className="flex items-center gap-2">
+        <SidebarFooter className="border-t border-[var(--color-border)] p-4">
+          <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-success)]" />
-            <span className="text-[9px] font-[var(--font-mono)] tracking-[0.1em] text-[var(--color-success)]">
+            <span className="text-[9px] font-[var(--font-mono)] tracking-[0.1em] text-[var(--color-success)] group-data-[collapsible=icon]:hidden">
               SYSTEM ACTIVE
             </span>
           </div>
-          <p
-            className="mt-2 overflow-hidden whitespace-nowrap text-[10px] leading-relaxed text-[var(--color-foreground-subtle)] font-[var(--font-mono)]"
-            style={{
-              maxHeight: sidebarCollapsed ? "0px" : "2.5rem",
-              opacity: sidebarCollapsed ? 0 : 1,
-              transform: sidebarCollapsed ? "translateY(-0.25rem)" : "translateY(0)",
-              transition: "max-height 180ms cubic-bezier(0.22, 1, 0.36, 1), opacity 130ms ease, transform 180ms cubic-bezier(0.22, 1, 0.36, 1)",
-              transitionDelay: sidebarCollapsed ? "0ms" : "120ms",
-            }}
-          >
+          <p className="mt-2 text-[10px] leading-relaxed text-[var(--color-foreground-subtle)] font-[var(--font-mono)] group-data-[collapsible=icon]:hidden">
             RECOVERY ENGINE v1.0
             <br />
             AMD HACKATHON ACT-II
           </p>
-        </div>
-      </aside>
+        </SidebarFooter>
+        <SidebarRail />
+      </Sidebar>
 
-      <main className="flex-1 overflow-y-auto">
-        {children}
-      </main>
+      <SidebarInset className="overflow-hidden">
+        <div className="flex h-14 items-center border-b border-[var(--color-border)] px-4 md:hidden">
+          <SidebarTrigger />
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {children}
+        </div>
+      </SidebarInset>
       <ProcessingQueue />
-    </div>
+    </SidebarProvider>
   );
 }

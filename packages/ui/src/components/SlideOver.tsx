@@ -21,7 +21,7 @@ const SlideOverContent = React.forwardRef<
       {...props}
     >
       <div className="flex h-14 flex-shrink-0 items-center justify-end border-b border-[var(--color-border)] px-6">
-        <DialogPrimitive.Close className="text-[var(--color-foreground-subtle)] transition-colors hover:text-[var(--color-foreground)] focus:outline-none">
+        <DialogPrimitive.Close className="text-[var(--color-foreground-subtle)] transition-colors hover:text-[var(--color-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-background)]">
           <X className="h-4 w-4" />
           <span className="sr-only">Close</span>
         </DialogPrimitive.Close>
@@ -37,11 +37,11 @@ SlideOverContent.displayName = DialogPrimitive.Content.displayName;
 function SlideOverHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return <div className={cn("flex flex-col space-y-2", className)} {...props} />;
 }
-function SlideOverTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
-  return <h3 className={cn("text-base font-semibold tracking-[0.05em] text-[var(--color-foreground)]", className)} {...props} />;
+function SlideOverTitle({ className, ...props }: React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>) {
+  return <DialogPrimitive.Title className={cn("text-base font-semibold tracking-[0.05em] text-[var(--color-foreground)]", className)} {...props} />;
 }
-function SlideOverDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
-  return <p className={cn("text-sm text-[var(--color-foreground-subtle)]", className)} {...props} />;
+function SlideOverDescription({ className, ...props }: React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>) {
+  return <DialogPrimitive.Description className={cn("text-sm text-[var(--color-foreground-subtle)]", className)} {...props} />;
 }
 function SlideOverFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return <div className={cn("flex items-center space-x-3 px-8 py-5", className)} {...props} />;
