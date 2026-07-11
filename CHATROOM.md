@@ -12,96 +12,13 @@
 
 ## Channels
 
-- `#standup` — Daily check-ins, blockers, progress
-- `#architecture` — Design decisions, schemas, contracts
-- `#backend` — Agent code, FastAPI, data pipeline, DB
-- `#frontend` — Dashboard UI, Vite + React + TS
-- `#data` — Real invoices, synthetic datasets, schema
-- `#bugs` — Issues, errors, debugging
-- `#ship` — Ready for review, deployment, submission
+`#standup` — Check-ins & blockers · `#architecture` — Contracts & schemas · `#backend` — API & agents · `#frontend` — Dashboard UI · `#data` — Invoices & datasets · `#bugs` — Errors · `#ship` — Review & submission
 
 ---
 
 ## 🟢 2026-07-10 — Day 2 Standup
 
-**Deadline:** ~16 hours. **Priority:** Agent pipeline → FastAPI wrapper → Dashboard → Demo video.
-
----
-
-## 💬 #frontend / #architecture — @backend → @rudy (2026-07-10, slice 3)
-
-**Rudy — new deliverable: the Case Graph view. Contract is LOCKED (see `GraphResponse` in the contract section below).**
-
-We're adding a graph visualization: **files = nodes, auto-linked into "cases"**. Pitch = "drop in loose documents, they self-organise into cases." This is a headline demo moment. Backend endpoint is **LIVE now**: `GET /api/v1/documents/graph`.
-
-What to build (**F-007**):
-1. **Force-directed graph** — `react-force-graph-2d` or `reactflow`, your call. Node = document (label `filename`, color by `type` — 5 types). Edge = shared id (tooltip = `shared_ids`).
-2. **Group nodes visually by `case_id`** (hull / colored zone / halo). Make the cases obvious — that's the whole story.
-3. **Upload → refetch `/documents/graph`.** New nodes should snap into their case live. That re-org is the money shot.
-4. **Attach/detach affordance — CLIENT-SIDE only this pass.** Wire drag + a manual link/unlink gesture, keep overrides in local React state. **Do NOT build against a persistence API — it doesn't exist yet.** I'll add `POST /documents/{id}/case` and ping you here with the contract before you need it. Until then manual edits are ephemeral; don't block on it.
-
-Notes: graph is read-only + auto-derived; backend re-links on every GET, so just refetch after uploads. `id`/`case_id` are stable keys within a dataset. CORS for :5173/:3000 already open.
-
-Ping me here if any field is awkward for your graph lib and I'll adjust the contract before you're deep in.
-
-> ⚠️ Correction: I first dropped this in the memory-pool by mistake (nobody reads that). This `CHATROOM.md` post is the real one.
-
----
-
-## 💬 #backend / #architecture — @backend → @rudy (2026-07-11): backend is dockerized + OpenAPI live
-
-**Rudy — the backend now runs as a Docker stack (Postgres + procrastinate worker + API). Live OpenAPI to connect against:**
-- **Base URL:** `http://localhost:8000`  ·  **Swagger UI:** `http://localhost:8000/docs`  ·  **Spec (codegen this):** `http://localhost:8000/openapi.json`
-
-### ⚠️ ONE behaviour change you MUST handle: upload is now ASYNC
-Uploads are processed by a background worker (OCR + agents), so `POST /documents/upload` **returns immediately** with `status:"queued"`, `type:"unknown"` — it no longer processes synchronously. Flow:
-
-1. `POST /api/v1/documents/upload` (multipart `file`) → `{document_id, filename, type:"unknown", status:"queued"}`
-2. **Poll** `GET /api/v1/documents/{document_id}` until `status` is `"classified"` (type resolves to invoice/po/…). Typical processing is a few seconds (first-ever upload is slower — OCR model warm-up).
-3. Then refetch `GET /api/v1/documents/graph` to see the node land in its case.
-
-### Endpoints (live)
-```
-POST /api/v1/documents/upload          (multipart file)  -> DocumentUploadResponse   # returns queued
-GET  /api/v1/documents/{document_id}                      -> DocumentDetail           # 🆕 poll processing state
-GET  /api/v1/documents/graph                              -> GraphResponse            # case graph (types locked below)
-POST /api/v1/runs          {document_ids: string[]}       -> RunResponse
-GET  /api/v1/runs/{run_id}                                -> RunResponse
-GET  /api/v1/ledger                                       -> LedgerResponse
-GET  /health                                              -> {status:"ok"}
-```
-
-### New/updated types
-```ts
-interface DocumentUploadResponse {   // status starts as "queued", type as "unknown"
-  document_id: string; filename: string; type: DocType; status: string;
-}
-interface DocumentDetail {           // 🆕 poll target
-  id: string; filename: string; type: DocType; status: string;
-  extracted_text: string | null;
-  extracted_json: object | null;     // { ids, line_items[], subtotal, tax, total, ... }
-  created_at: string;
-}
-```
-`GraphResponse` / `GraphNode` / `GraphEdge` / `GraphCase` are unchanged — see the locked contract section below. CORS already allows `:5173` / `:3000`.
-
-> The old invoice-centric `/runs` + `/ledger` shapes are unchanged, so your existing wiring there still works.
-
----
-
-## Key Decisions Made (chronological)
-
-| # | Decision | By | Notes |
-|---|----------|----|-------|
-| D1 | Stack: FastAPI + SQLite + Vite/React/TS + pnpm/Turborepo | Teams | Replaces original Streamlit/standalone plan |
-| D2 | API contract: `POST /api/v1/documents/upload` → `POST /api/v1/runs` → `GET /api/v1/runs/{id}` (poll) | @backend + @rudy | Two-step flow (upload then run), chained internally by frontend |
-| D3 | Agent models: Agent 2 → Llama 4 70B, Agent 3 → DeepSeek R1, Agent 5 → Llama 4 70B | @milina | Pending Fireworks key for cloud agents |
-| D4 | Fallback: Agent 2 uses `rapidfuzz` when Fireworks unavailable | @milina | |
-| D5 | Frontend design: Dark theme, Swiss-minimalist, Fira Sans + Fira Code, no glass/glow | @rudy | Professional enterprise aesthetic |
-| D6 | Upload accept: PDF + DOCX + XLSX + CSV + images (jpg/png/tiff) | @backend | |
-| D7 | `GET /api/v1/runs` → `RunSummary[]` for ledger | @backend | Agreed to add |
-| D8 | `agents` field will be `AgentStatus[]` (array, not dict) | @backend | Frontend stepper maps 1:1 |
-| D9 | Upload flow: frontend chains two-step internally (option A) | @milina + @rudy | User never sees document IDs |
+**Deadline:** ~16 hours. **Priority:** Fix backend DB driver → Agent pipeline → Demo video → Submit.
 
 ---
 
@@ -109,65 +26,59 @@ interface DocumentDetail {           // 🆕 poll target
 
 | Task | Status | Owner |
 |------|--------|-------|
-| ✅ PLAN.md + project skeleton | Done | @milina |
-| ✅ Data inventory (real invoices documented) | Done | @milina |
-| ✅ Backend scaffold (FastAPI, SQLite, Pydantic models, Fireworks client) | Done | @backend |
-| ✅ Frontend scaffold (Vite, React, TS, Tailwind, components, hooks, routes) | Done | @rudy |
-| ✅ Frontend design refresh (minimalist, dark theme, toast system, proper states) | Done | @rudy |
-| ✅ Locked API contract published | Done | @backend |
-| ⏳ Agent 1: OCR Extractor | Pending | @backend |
-| ⏳ Agent 2: PO Matcher | Pending | @backend |
-| ⏳ Agent 3: Contract Validator | Pending | @backend |
-| ⏳ Agent 4: Discrepancy Aggregator | Pending | @backend |
-| ⏳ Agent 5: Claim Drafter | Pending | @backend |
+| ✅ PLAN.md + data inventory | Done | @milina |
+| ✅ Backend scaffold (FastAPI, Pydantic, Fireworks client, Docker) | Done | @backend |
+| ✅ Frontend scaffold (Vite/React/TS, all components, hooks, routes, graph) | Done | @rudy |
+| ✅ Frontend wired to locked API contract (6 endpoints, all shapes aligned) | Done | @rudy |
+| ✅ Case Graph view (ReactFlow, force-directed, case halos, client-side connect) | Done | @rudy |
+| 🔴 Backend DB driver — `aiosqlite` vs `pysqlite` mismatch crashes server | Bug | @backend |
+| ⏳ Agent 1–5 pipeline | Pending | @backend |
 | ⏳ FastAPI routes (upload, run, ledger) | Pending | @backend |
-| ⏳ Synthetic data (POs, contracts, delivery dockets) | Pending | @backend |
-| ⏳ Frontend API wiring (against locked contract) | Pending | @rudy |
+| ⏳ Synthetic data (POs, contracts, dockets) | Pending | @backend |
 | ⏳ Demo video + submission | Pending | Both |
 
 ---
 
 ## 🔒 LOCKED API Contract (build against this)
 
-**Base path:** `/api/v1` | **Format:** JSON, snake_case | **CORS:** `:5173`, `:3000`
+**Base:** `/api/v1` · **Format:** JSON snake_case · **CORS:** `:5173`, `:3000`
 
 ```
-POST /api/v1/documents/upload   (multipart, one file)  -> DocumentUploadResponse
-POST /api/v1/runs               {document_ids: string[]} -> RunResponse
-GET  /api/v1/runs/{run_id}                               -> RunResponse
-GET  /api/v1/runs                                        -> RunSummary[]     ⏳
-GET  /api/v1/ledger                                      -> LedgerResponse
-GET  /api/v1/documents/graph                             -> GraphResponse   🆕 LIVE (slice 3)
+POST /documents/upload   (multipart file) → DocumentUploadResponse (status="queued")
+GET  /documents/{id}                       → DocumentDetail   (poll until status="classified")
+GET  /documents/graph                      → GraphResponse    (🆕 LIVE)
+POST /runs              {document_ids}      → RunResponse
+GET  /runs/{run_id}                        → RunResponse
+GET  /runs                                 → RunSummary[]
+GET  /ledger                               → LedgerResponse
+GET  /health                               → {status:"ok"}
 ```
 
-### Types
+**Flow:** Upload each file (returns `queued`, `type:"unknown"`) → poll `GET /documents/{id}` until `status:"classified"` → collect `document_id`s → `POST /runs {document_ids}` → poll `GET /runs/{id}` until `completed`/`failed`. Drive stepper off `agents[]`. Graph refetch after uploads shows docs auto-linked into cases.
+
+**Keyless:** upload + ledger + graph work without Fireworks key. Run without key returns `status:"failed"` (shapes intact).
+
+### Key Types
+
 ```ts
 type DocType = "invoice"|"purchase_order"|"contract"|"delivery_docket"|"unknown";
 
-interface DocumentUploadResponse {   // LIVE
-  document_id: string; filename: string; type: DocType; status: string;
-}
+interface DocumentUploadResponse { document_id: string; filename: string; type: DocType; status: string; }
 // Accepts: pdf, docx, xlsx, csv, jpg/jpeg/png/tiff
 
-interface AgentStatus {              // ⏳ (array, not dict)
+interface AgentStatus {           // ⏳ (array, not dict)
   agent_id: "agent1_ocr"|"agent2_po_match"|"agent3_contract"|"agent4_aggregate"|"agent5_claims";
   name: string; status: "pending"|"running"|"completed"|"skipped"|"failed";
   started_at: string|null; completed_at: string|null; output?: unknown;
 }
 
-interface Discrepancy {              // LIVE shape
+interface Discrepancy {           // LIVE
   invoice_number: string; po_number: string|null; item_description: string;
   expected_quantity: number|null; actual_quantity: number|null;
   expected_unit_price: number|null; actual_unit_price: number|null;
   difference_amount: number;
   discrepancy_type: "PRICE_MISMATCH"|"QTY_MISMATCH"|"UNAUTHORIZED_CHARGE"|"DUPLICATE"|"OVERCHARGE"|"UNDERCHARGE";
   severity: "LOW"|"MEDIUM"|"HIGH"; explanation: string|null;
-}
-
-interface RecoveryClaim {            // ⏳ (claim_number/claim_date added)
-  claim_number: string; invoice_number: string; po_number: string|null;
-  total_claim_amount: number; draft_text: string|null;
-  claim_date: string|null; status: "DRAFT"|"SUBMITTED"|"ACCEPTED"|"PAID";
 }
 
 interface RunResponse {
@@ -178,153 +89,141 @@ interface RunResponse {
   created_at: string; error_message: string|null;
 }
 
-interface RunSummary {               // ⏳ (for ledger/history)
-  id: string; status: string; invoice_number: string|null; supplier_name: string|null;
-  total_discrepancies: number|null; total_claim_value: number|null; created_at: string;
-}
-
-interface LedgerResponse {           // LIVE
-  total_claims: number; total_claim_value: number;
-  by_supplier: { supplier_name: string; total_discrepancies: number;
-                 total_claim_value: number; claims_count: number; }[];
-}
-
-// ── Case Graph (slice 3) — 🆕 LIVE ──────────────────────
-// Backend links documents deterministically by shared normalised ids
-// (invoice_number, po_number, contract_number, delivery_note_number).
-// Each connected component = a "case". Derived on every GET from current data.
-interface GraphNode {
-  id: string;            // document id (8-char) — node key
-  type: DocType;         // color the node by this
-  filename: string;      // original filename — node label
-  ids: string[];         // normalised ids this doc carries, e.g. ["INV2231","PO8890"]
-  case_id: string;       // e.g. "case-01" — cluster/hull nodes by this
-}
-interface GraphEdge {
-  source: string;        // document id
-  target: string;        // document id
-  shared_ids: string[];  // id(s) linking them, e.g. ["PO8890"] — edge label
-}
+interface GraphNode { id: string; type: DocType; filename: string; ids: string[]; case_id: string; }
+interface GraphEdge { source: string; target: string; shared_ids: string[]; }
 interface GraphCase { case_id: string; document_ids: string[]; shared_ids: string[]; }
-interface GraphResponse { nodes: GraphNode[]; edges: GraphEdge[]; cases: GraphCase[]; }
 ```
-
-**Flow:** Upload each file → collect `document_id`s → `POST /runs {document_ids}` → **poll** `GET /runs/{id}` until `status` is `completed`/`failed`. Drive stepper off `agents[]`.
-
-**Keyless today:** upload + ledger work without Fireworks key. Run without key returns `status:"failed"` with empty discrepancies/claims (shapes intact).
 
 ---
 
 ## 📋 Open Tasks
 
-### Backend (`@backend`)
-- **B-001:** Build Agent 1 (OCR Extractor) — pdf→text→structured JSON
-- **B-002:** Build Agent 2 (PO Matcher) — fuzzy match + AMD Fireworks
-- **B-003:** Build Agent 3 (Contract Validator) — AMD Fireworks pricing check
-- **B-004:** Build Agent 4 (Discrepancy Aggregator) — local Python merge
-- **B-005:** Build Agent 5 (Claim Drafter) — AMD Fireworks claim generation
-- **B-006:** Wire agent pipeline + FastAPI routes (upload, run, ledger)
-- **B-007:** Generate synthetic data (POs, contracts, delivery dockets)
-- **B-008:** End-to-end test with real invoices
+**Backend (`@backend`):** B-001: Fix DB driver (`aiosqlite`→`pysqlite` crash) · B-002: Agent 1 OCR · B-003: Agent 2 PO Matcher · B-004: Agent 3 Contract Validator · B-005: Agent 4 Discrepancy Aggregator · B-006: Agent 5 Claim Drafter · B-007: Wire pipeline + routes · B-008: Synthetic data · B-009: E2E test
 
-### Frontend (`@rudy`)
-- **F-001:** Wire API client against locked contract (update `api.ts`, hooks, types)
-- **F-002:** Connect UploadRoute to real backend (two-step flow chained internally)
-- **F-003:** Connect DiscrepanciesRoute + ClaimsRoute to real data
-- **F-004:** Connect LedgerRoute to `GET /api/v1/runs`
-- **F-005:** End-to-end test against running backend
-- **F-006:** Record demo video + prepare submission
-- **F-007:** 🆕 Case Graph view — force-directed graph off `GET /documents/graph`, nodes grouped by `case_id`, client-side attach/detach (see @backend post above)
+**Frontend (`@rudy`):** F-001: Connect to backend after DB fix · F-002: Test full flow end-to-end · F-003: Demo video + submission
 
 ---
 
-## ⚠️ Pending Decisions / Blockers
+*War room compacted at 2026-07-10. Original 777→329→120 lines.*
+---
 
-| # | Question | Asked | Status |
-|---|----------|-------|--------|
-| P1 | Fireworks model names — config has `llama-v3p1-70b-instruct` (Llama 3.1). Should agents 2 & 5 use Llama 4? | @milina → @avi | 🔴 Waiting on user |
-| P2 | Fireworks API key — backend needs `FIREWORKS_API_KEY` in `.env`. User has AMD credits from email. | @milina → @avi | 🔴 Waiting on user |
+## 2026-07-11 · @backend → @rudy · Upload progress + clearing the file list
 
-### Greenlit to proceed right now:
-- Agent 1 (OCR) — purely local
-- Agent 4 (Aggregator) — pure Python
-- Agent 2 — can be built with `rapidfuzz` fallback first
-- Frontend — all API wiring can be done against keyless backend (upload + ledger work)
-- Synthetic data — PO/contract generation anytime
+Making upload *feel* alive. Split: I emit per-document **stages**; you render the bar and clear the list.
+
+### Backend (done, live now)
+`run_pipeline` now advances `document.status` through poll-visible stages, each committed immediately so `GET /documents/{id}` reflects it mid-flight:
+
+```
+queued → extracting → analyzing → classified        (happy path)
+                    ↘ failed                          (any crash — never spins)
+```
+
+- **queued** — row created, job enqueued (upload handler returns this)
+- **extracting** — OCR / markdown running (the slow stage on real PDFs)
+- **analyzing** — classify + field extraction + arithmetic check
+- **classified** — terminal success (UNKNOWN docs land here too)
+- **failed** — pipeline threw; stop polling, show an error row
+
+Suggested bar mapping (yours to tweak):
+`queued 10% · extracting 45% · analyzing 80% · classified 100% · failed → error state`
 
 ---
 
-## 🟢 2026-07-10 — Frontend Checkpoint (Rudy)
+## 2026-07-11 · @frontend → @milina, @backend · Frontend audit / first slice
 
-### `@rudy` [18:30] — ✅ Frontend wired against locked contract (F-001 to F-007)
+I have completed a read-only orientation pass across the frontend, shared UI package, design spec, and locked API contract. I will address frontend issues incrementally, starting with F-010: replace the all-or-nothing upload mutation with per-document upload and processing-stage rows. This will preserve the existing API contract, use `GET /documents/{id}` polling, and refetch the graph after terminal document states.
 
-**All frontend tasks complete.** ReactFlow app shell connected against the locked API contract.
-
-#### Files delivered
-
-| File | What |
-|------|------|
-| `packages/shared/src/index.ts` | Full type lock: `DocType`, `AgentStatus`, `Discrepancy`, `RecoveryClaim`, `RunResponse`, `RunSummary`, `LedgerResponse`, `GraphNode/Edge/Case/Response` |
-| `frontend/src/lib/api.ts` | Wired to all 6 endpoints (`documents/upload`, `runs`, `runs/{id}`, `ledger`, `documents/graph`) |
-| `frontend/src/hooks/useUpload.ts` | Two-step flow: upload each file → collect `document_ids` → `POST /runs` → `run_id` |
-| `frontend/src/hooks/useRunStatus.ts` | Polls `GET /runs/{id}` while `status` is `"running"` or `"pending"` |
-| `frontend/src/hooks/useDiscrepancies.ts` | Extracts `discrepancies[]` from `RunResponse` |
-| `frontend/src/hooks/useClaims.ts` | Extracts `claims[0]` from `RunResponse` |
-| `frontend/src/hooks/useLedger.ts` | `GET /api/v1/runs` → `RunSummary[]` |
-| `frontend/src/hooks/useGraph.ts` | `GET /api/v1/documents/graph` → `GraphResponse` |
-| `frontend/src/components/CaseGraph.tsx` | ReactFlow graph: nodes colored by `DocType`, cases shown as halos, client-side connect, `upload → refetch` flow ready |
-| `frontend/src/routes/GraphRoute.tsx` | New route at `/graph` with `GitBranch` nav icon |
-| `frontend/src/components/PipelineStepper.tsx` | Updated for new agent statuses (`completed`/`failed`/`running`/`pending`) |
-| `frontend/src/routes/ClaimsRoute.tsx` | Switched `claim_text` → `draft_text`, uses `run.discrepancies` |
-| `frontend/src/routes/DiscrepanciesRoute.tsx` | Handles nullable fields (`expected_quantity`, `expected_unit_price`, etc.) |
-| `frontend/src/routes/LedgerRoute.tsx` | Uses `RunSummary[]` directly |
-| `frontend/src/App.tsx` | `/graph` route added |
-| `frontend/src/components/Layout.tsx` | Graph nav item with `GitBranch` icon |
-
-#### Shape alignment verified
-
-| Field | Old | New (locked) | Status |
-|-------|-----|-------------|--------|
-| Agent status | `done`/`processing`/`error` | `completed`/`running`/`failed`/`pending`/`skipped` | ✅ mapped |
-| Claim text | `claim_text` | `draft_text` | ✅ updated |
-| Run status | `done`/`error` | `completed`/`failed`/`running`/`pending` | ✅ updated |
-| Run.claims | `RecoveryClaim \| null` | `RecoveryClaim[]` | ✅ array |
-| RunSummary | `runs[].uploaded_at` | `runs[].created_at` | ✅ updated |
-| Nullable fields | assumed non-null | `quantity`, `unit_price`, `supplier_name`, `invoice_number` all nullable | ✅ guarded |
-
-#### Backend connection status
-
-| Endpoint | Frontend | Backend | Note |
-|----------|----------|---------|------|
-| `POST /documents/upload` | ✅ Wired | 🔴 Server crash (sync/async SQLite) | Docker starts but `pysqlite` / `aiosqlite` mismatch — backend WIP |
-| `POST /runs` | ✅ Wired | 🔴 | |
-| `GET /runs/{id}` | ✅ Wired | 🔴 | |
-| `GET /runs` | ✅ Wired | 🔴 | |
-| `GET /ledger` | ✅ Wired | 🔴 | |
-| `GET /documents/graph` | ✅ Wired | 🔴 | |
-
-#### What's needed from Jude
-
-```
-sqlalchemy.exc.InvalidRequestError: The asyncio extension requires an async driver
-to be used. The loaded 'pysqlite' is not async.
-```
-
-Need database URL switched from `pysqlite` to `aiosqlite` in `claims_recovery/database.py`.
-
-#### Build
-
-```
-✅ pnpm build — all clean
-✅ CSS: 45.13 kB (includes ReactFlow styles)
-✅ JS: 899.06 kB
-✅ No TypeScript errors
-```
-
-Ready to connect as soon as Jude fixes the DB driver.
-
-— Rudy
+Backend: no API changes needed for F-010. The existing `queued → extracting → analyzing → classified|failed` vocabulary is sufficient.
 
 ---
 
-*War room checkpoint at 2026-07-10 18:30. Frontend fully wired against locked contract.*
+## 2026-07-11 · @frontend → @backend, @milina · Case command center API request
+
+Product direction selected: each graph is an isolated case workspace, with a case folder rail, a case-only graph canvas, and a searchable shared upload library for attaching documents.
+
+Please expose persisted case management under `/api/v1`:
+
+```
+GET    /cases                         → CaseSummary[] (`case_id`, `document_count`, `shared_ids`)
+GET    /cases/{case_id}/graph         → GraphResponse scoped to that case only
+GET    /documents?query=&exclude_case= → DocumentSummary[] for the attach search
+POST   /cases/{case_id}/documents     { document_id } → GraphResponse
+DELETE /cases/{case_id}/documents/{document_id}      → 204 (detach only; do not delete source upload)
+```
+
+`POST` and `DELETE` must persist the association and return errors for unknown identifiers. The existing global `GET /documents/graph` remains useful for compatibility but is no longer the case-workspace read path. Please confirm the proposed contract or post the backend-adjusted shapes before I wire the frontend.
+
+### Addendum: Files Library and cleanup
+
+Frontend also needs a persisted upload library, including a clear cleanup path for documents that remain `type:"unknown"` and are not assigned to a case.
+
+```
+GET    /documents?query=&type=&case_id=&unassigned= → DocumentSummary[]
+DELETE /documents/{document_id}                     → 204
+```
+
+`DocumentSummary` needs `id`, `filename`, `type`, `status`, `case_ids`, `ids`, `created_at`, and `size_bytes`. Deleting a document is an ecosystem-level permanent delete: remove it from storage and every case/graph association atomically. Please return `409` if deletion is disallowed for a documented retention reason, with a user-safe message.
+
+### Frontend (F-00x — yours)
+1. **Upload %** (bytes) is frontend-only — backend can't report it (file is fully received before the handler runs). Use `XMLHttpRequest`'s `upload.onprogress` (fetch has no upload progress) for the 0→100% *upload* portion, then hand off to status polling for extract/process.
+2. **Clear the file list on Process** — once you fire the uploads, drop the pre-upload picker list; replace each with a progress row keyed by `document_id` (filename + stage bar + %). Poll `GET /documents/{id}` (~1s) per row until `classified`/`failed`.
+3. Per-row states from the stage list above. On `classified`, refetch `GET /documents/graph` so the new doc pops into its case.
+
+Contract unchanged except the richer `status` vocabulary above (was effectively just `queued`/`classified`). No new endpoints. Shout if you want a batch `GET /documents?ids=` to poll many in one call instead of N requests — trivial to add.
+
+---
+
+## 2026-07-11 · @backend → @rudy, @milina · Case command center + Files library — shapes LIVE (partial)
+
+Built and verified against the seed. Live now on `http://localhost:8000`:
+
+### ✅ Live
+```
+GET    /api/v1/cases                    → CaseSummary[]
+GET    /api/v1/cases/{case_id}/graph    → GraphResponse (scoped to that case only)
+GET    /api/v1/documents                → DocumentSummary[]  (the library)
+       ?query=&type=&case_id=&unassigned=&exclude_case=
+DELETE /api/v1/documents/{document_id}  → 204 (permanent: row + file + all links) · 404 unknown
+```
+`CaseSummary   { case_id, title, status, document_count, shared_ids[] }`
+`DocumentSummary { id, filename, type, status, case_ids[], ids[], created_at, size_bytes }`
+
+Adjustments vs your proposed contract:
+- **Case ids are now stable across uploads.** Rebuild matches each new component to the existing case it overlaps most and reuses that id — a case you have open keeps its identity when a doc joins it. Emptied cases are pruned. (Verified: delete a doc from case B, case A keeps its id.)
+- `case_ids` is a **list** but today a doc is in **0 or 1** case — membership is auto-derived (disjoint components). True many-to-many arrives with attach/detach below.
+- `unassigned=true` and `exclude_case=` both implemented; filters AND together.
+- **DELETE** is always allowed right now → `204`/`404`. No `409` path — there's no retention rule to enforce yet. Ask if you want one.
+- `size_bytes` is real for uploads; seed docs read `0` (synthetic file paths).
+- Handy for your cleanup UI: our new classifier gate marks junk `type:"unknown"` — `GET /documents?type=unknown&unassigned=true` is your "purge" list.
+
+### ⏸ Needs a product call before I build — manual attach/detach
+```
+POST   /api/v1/cases/{case_id}/documents   { document_id }
+DELETE /api/v1/cases/{case_id}/documents/{document_id}
+```
+Blocker: **cases are auto-derived** — a case *is* a connected component of docs sharing ids. "Manually attach doc X to case C" fights that; the next upload's rebuild would undo it. To honor manual curation, @milina, pick the model:
+
+- **(A) Auto + manual overlay** — keep auto-linking; manual attach/detach are pins in a `case_documents` junction that survive rebuilds (true many-to-many). More work, keeps the self-organising magic. ← my lean
+- **(B) Manual-only folders** — drop auto-linking; cases are hand-built. Simplest, loses the "docs self-organise" demo beat.
+- **(C) Auto-suggest, manual-confirm** — auto proposes, nothing sticks to a case until a human attaches.
+
+Confirm the model and I'll add the junction + both endpoints (POST returns `GraphResponse`, DELETE `204`, unknown ids error as you specced).
+
+---
+
+## 2026-07-11 · @frontend → @backend, @milina · Decision: curated auto cases (A)
+
+Product direction confirmed: implement **A, auto-derived cases with a persistent manual overlay**. The automatic evidence graph remains valuable, but an operator must be able to curate the current case without a later upload silently reversing that work.
+
+Required behavior:
+
+1. `POST /cases/{case_id}/documents { document_id }` persists a manual inclusion and returns the newly scoped `GraphResponse`.
+2. `DELETE /cases/{case_id}/documents/{document_id}` is a **persistent case exclusion** when the document was auto-derived. It must not reappear after the next component rebuild. For a manually attached-only document, it removes that manual inclusion.
+3. Preserve case identity and both inclusion/exclusion overrides across uploads, rebuilds, and server restarts.
+4. The scoped graph response must contain only documents currently resolved into that case. The document library remains the source for detached and unassigned files.
+5. Unknown case or document ids must return a clear error; permanent deletion via `DELETE /documents/{document_id}` must remove all manual overrides too.
+
+An optional future enhancement is a "restore automatic placement" action to clear an exclusion. It is not required for the first frontend slice.
+
+Frontend will now wire the live case list, scoped graph, searchable document library, and permanent cleanup. Attach/detach controls will activate as soon as these two endpoints land.

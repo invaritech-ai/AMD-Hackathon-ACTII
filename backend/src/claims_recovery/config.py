@@ -27,6 +27,14 @@ class Settings(BaseSettings):
     model_classifier: str = "fireworks:accounts/fireworks/models/gpt-oss-20b"
     model_extractor: str = "fireworks:accounts/fireworks/models/gpt-oss-20b"
 
+    # OCR: a vision model transcribes scans (Kimi reasons into its output), then a
+    # cheap text model strips that reasoning to clean Markdown. See vision_ocr.py.
+    model_vision_ocr: str = "fireworks:accounts/fireworks/models/kimi-k2p7-code"
+    model_ocr_cleanup: str = "fireworks:accounts/fireworks/models/gpt-oss-120b"
+    # Cheap vision call that classifies a scan BEFORE the expensive OCR, so junk
+    # (screenshots, random photos) never burns a transcription. See vision_ocr.py.
+    model_vision_classifier: str = "fireworks:accounts/fireworks/models/qwen3p7-plus"
+
     # Fireworks model assignments per agent
     model_po_matcher: str = "accounts/fireworks/models/llama-v3p1-70b-instruct"
     model_contract_validator: str = "accounts/fireworks/models/deepseek-r1"

@@ -1,19 +1,19 @@
-"""Turn any uploaded document into Markdown, preserving tables.
-
-Dispatch by file extension, fast path first (native text layer before OCR),
-mirroring the split proven across the dataset:
+"""Extract clean text from *text-native* documents, preserving tables.
 
     text-layer PDF        -> pdfplumber (text + text-strategy tables)
-    scanned PDF / image   -> PaddleOCR PP-StructureV3 (layout + table recognition)
     .docx                 -> python-docx (paragraphs + tables)
     .xlsx                 -> openpyxl (rows)
     .csv                  -> stdlib csv (rows)
     .txt / .md / .json    -> decode
 
+Images and scanned PDFs (no usable text layer) carry no native text — those go
+to the vision-LLM OCR path (see ``services.vision_ocr``), gated by a cheap
+classification pass so junk never burns a transcription. ``extract_native_text``
+returns ``None`` for them to signal "needs OCR".
+
 Tables are the point: financial docs live and die on their line-item tables, so
-every tabular source is rendered to Markdown (pipe tables here; PP-StructureV3
-emits HTML <table> inline, which LLMs read fine). Every extractor is
-dependency-guarded and never raises — a failed extract returns "" not a 500.
+every tabular source is rendered to Markdown. Every extractor is
+dependency-guarded and never raises — a failed extract returns "" (or None).
 """
 
 from __future__ import annotations
@@ -21,7 +21,6 @@ from __future__ import annotations
 import csv
 import json
 import logging
-from functools import lru_cache
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -32,15 +31,26 @@ _MIN_TEXT_LAYER_CHARS = 50
 _IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".tiff", ".tif", ".bmp"}
 _TEXT_SUFFIXES = {".txt", ".md", ".markdown", ".json", ".log", ".xml", ".yaml", ".yml"}
 
+SUPPORTED_SUFFIXES = {".pdf", ".docx", ".xlsx", ".csv", *_IMAGE_SUFFIXES, *_TEXT_SUFFIXES}
 
-def extract_markdown(file_path: Path) -> str:
-    """Extract a Markdown representation of a document. Never raises."""
+
+def is_supported(filename: str) -> bool:
+    return Path(filename).suffix.lower() in SUPPORTED_SUFFIXES
+
+
+def extract_native_text(file_path: Path) -> str | None:
+    """Clean text for text-native formats. Never raises.
+
+    Returns ``None`` when the document has no native text layer (image, or a
+    scanned PDF) — the caller routes those to vision OCR.
+    """
     suffix = file_path.suffix.lower()
     try:
         if suffix == ".pdf":
-            return _from_pdf(file_path)
+            text = _pdf_text_layer(file_path)
+            return text if len(text.strip()) >= _MIN_TEXT_LAYER_CHARS else None
         if suffix in _IMAGE_SUFFIXES:
-            return _from_image(file_path)
+            return None
         if suffix == ".docx":
             return _from_docx(file_path)
         if suffix == ".xlsx":
@@ -49,18 +59,10 @@ def extract_markdown(file_path: Path) -> str:
             return _from_csv(file_path)
         if suffix in _TEXT_SUFFIXES:
             return _decode(file_path)
-        # Unknown extension: try a plain text decode, else give up.
         return _decode(file_path)
     except Exception:  # never let extraction 500 the request
-        logger.exception("extraction failed for %s", file_path.name)
-        return ""
-
-
-SUPPORTED_SUFFIXES = {".pdf", ".docx", ".xlsx", ".csv", *_IMAGE_SUFFIXES, *_TEXT_SUFFIXES}
-
-
-def is_supported(filename: str) -> bool:
-    return Path(filename).suffix.lower() in SUPPORTED_SUFFIXES
+        logger.exception("native text extraction failed for %s", file_path.name)
+        return None
 
 
 # ── Markdown helpers ──────────────────────────────────────────────────
@@ -82,9 +84,9 @@ def rows_to_markdown(rows: list[list[str]]) -> str:
     return "\n".join(lines)
 
 
-# ── PDF ───────────────────────────────────────────────────────────────
+# ── PDF (text layer only) ─────────────────────────────────────────────
 
-def _from_pdf(file_path: Path) -> str:
+def _pdf_text_layer(file_path: Path) -> str:
     import pdfplumber
 
     text_parts: list[str] = []
@@ -96,49 +98,7 @@ def _from_pdf(file_path: Path) -> str:
                 md = rows_to_markdown(table)
                 if md:
                     text_parts.append(md)
-
-    combined = "\n\n".join(p for p in text_parts if p.strip())
-    if len(combined.strip()) >= _MIN_TEXT_LAYER_CHARS:
-        return combined
-    # Empty/near-empty text layer -> scanned PDF, fall back to OCR.
-    logger.info("%s has no usable text layer; routing to PP-StructureV3", file_path.name)
-    return _from_image(file_path)
-
-
-# ── Image / scanned (PP-StructureV3) ──────────────────────────────────
-
-@lru_cache(maxsize=1)
-def _get_structure_pipeline():
-    """PP-StructureV3 with the trimmed mobile config (fits memory, keeps tables)."""
-    from paddleocr import PPStructureV3
-
-    return PPStructureV3(
-        use_doc_orientation_classify=False,
-        use_doc_unwarping=False,
-        use_textline_orientation=False,
-        use_formula_recognition=False,
-        use_seal_recognition=False,
-        use_chart_recognition=False,
-        text_detection_model_name="PP-OCRv5_mobile_det",
-        text_recognition_model_name="PP-OCRv5_mobile_rec",
-    )
-
-
-def _from_image(file_path: Path) -> str:
-    try:
-        pipeline = _get_structure_pipeline()
-    except ImportError:
-        logger.warning("paddleocr/paddlex not installed; skipping OCR for %s", file_path.name)
-        return ""
-
-    pages: list[str] = []
-    for result in pipeline.predict(str(file_path)):
-        md = getattr(result, "markdown", None)
-        if isinstance(md, dict):
-            md = md.get("markdown_texts", "")
-        if md:
-            pages.append(md)
-    return "\n\n".join(pages)
+    return "\n\n".join(p for p in text_parts if p.strip())
 
 
 # ── Office formats ────────────────────────────────────────────────────

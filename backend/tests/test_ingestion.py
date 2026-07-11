@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from claims_recovery.services.ingestion import (
-    extract_markdown,
+    extract_native_text,
     is_supported,
     rows_to_markdown,
 )
@@ -32,14 +32,19 @@ def test_rows_to_markdown_drops_empty_rows():
 def test_csv_extraction(tmp_path: Path):
     p = tmp_path / "po.csv"
     p.write_text("po_number,supplier\nPO-1,Acme\nPO-2,Globex\n")
-    md = extract_markdown(p)
+    md = extract_native_text(p)
     assert "| po_number | supplier |" in md
     assert "| PO-1 | Acme |" in md
 
 
-def test_unsupported_and_missing_never_raise(tmp_path: Path):
-    # Missing file: swallowed, returns "".
-    assert extract_markdown(tmp_path / "nope.pdf") == ""
+def test_images_have_no_native_text():
+    # Images carry no native text -> None signals "route to vision OCR".
+    assert extract_native_text(Path("scan.jpg")) is None
+
+
+def test_missing_pdf_never_raises(tmp_path: Path):
+    # Missing/broken file: swallowed, returns None (needs OCR / nothing to read).
+    assert extract_native_text(tmp_path / "nope.pdf") is None
     assert is_supported("invoice.pdf")
     assert is_supported("scan.JPG")
     assert not is_supported("archive.zip")

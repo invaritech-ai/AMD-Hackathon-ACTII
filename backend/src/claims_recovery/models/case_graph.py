@@ -43,6 +43,30 @@ class DocLink(Base, TimestampMixin):
     status: Mapped[str] = mapped_column(String(16), default="active")  # active|dismissed
 
 
+class CaseMembershipOverride(Base, TimestampMixin):
+    """Operator curation on top of auto-derived cases (Model A).
+
+    A case is normally a connected component of docs sharing ids. This table
+    lets a human pin (`include`) or tombstone (`exclude`) a doc's membership so
+    the choice survives the next component rebuild. Exactly one row per
+    (case, doc): `include` forces the doc in, `exclude` forces it out; no row =
+    pure auto. Clearing the row ("restore automatic placement") reverts to auto.
+    """
+
+    __tablename__ = "case_membership_overrides"
+    __table_args__ = (
+        UniqueConstraint("case_id", "document_id", name="uq_case_override"),
+    )
+
+    case_id: Mapped[str] = mapped_column(
+        String(8), ForeignKey("cases.id", ondelete="CASCADE"), index=True
+    )
+    document_id: Mapped[str] = mapped_column(
+        String(8), ForeignKey("documents.id", ondelete="CASCADE"), index=True
+    )
+    kind: Mapped[str] = mapped_column(String(8))  # include|exclude
+
+
 class Reconciliation(Base, TimestampMixin):
     __tablename__ = "reconciliations"
 

@@ -61,6 +61,63 @@ class GraphResponse(BaseModel):
     cases: list[GraphCase] = Field(default_factory=list)
 
 
+class CaseSummary(BaseModel):
+    case_id: str
+    title: str | None = None
+    status: str
+    document_count: int
+    shared_ids: list[str] = Field(default_factory=list)
+
+
+class DocumentSummary(BaseModel):
+    id: str
+    filename: str
+    type: DocumentType
+    status: str
+    case_ids: list[str] = Field(default_factory=list)  # 1 today; list for the M:N future
+    ids: list[str] = Field(default_factory=list)        # normalised ids the doc carries
+    created_at: datetime
+    size_bytes: int
+
+
+# ── Reconciliation (case-centric) ─────────────────────
+
+class CaseExceptionResponse(BaseModel):
+    id: str
+    document_id: str | None = None
+    check_type: str
+    severity: str
+    expected_value: Decimal | None = None
+    actual_value: Decimal | None = None
+    delta: Decimal | None = None
+    currency: str | None = None
+    explanation: str | None = None
+    status: str
+
+    model_config = {"from_attributes": True}
+
+
+class CaseClaimResponse(BaseModel):
+    id: str
+    total_amount: Decimal
+    currency: str | None = None
+    draft_text: str | None = None
+    status: str
+
+    model_config = {"from_attributes": True}
+
+
+class ReconciliationResponse(BaseModel):
+    case_id: str
+    reconciliation_id: str | None = None
+    status: str  # ok | exceptions_found
+    summary: str | None = None
+    total_recoverable: Decimal = Decimal("0")
+    currency: str | None = None
+    exceptions: list[CaseExceptionResponse] = Field(default_factory=list)
+    claim: CaseClaimResponse | None = None
+
+
 # ── Invoice ───────────────────────────────────────────
 
 class LineItemResponse(BaseModel):
