@@ -56,3 +56,20 @@ def test_expected_results_capture_graph_and_recovery_ground_truth(tmp_path: Path
     target = tmp_path / "expected-results.json"
     generate.write_manifest(cases, target)
     assert json.loads(target.read_text()) == manifest
+
+
+def test_text_pdf_contains_case_identifiers_and_amounts(tmp_path: Path):
+    case = generate.load_cases()[0]
+    expected = {
+        "purchase_order": [case["po"]["number"], "6,000.00"],
+        "invoice": [case["invoice"]["number"], case["po"]["number"]],
+        "delivery_docket": [case["pod"]["number"], case["invoice"]["number"]],
+        "debit_note": [case["debit_note"]["number"], "180.00"],
+    }
+
+    for kind, needles in expected.items():
+        target = tmp_path / f"{kind}.pdf"
+        generate.render_text_pdf(case, kind, target)
+        text = generate.extract_pdf_text(target)
+        assert target.stat().st_size > 1000
+        assert all(needle in text for needle in needles)

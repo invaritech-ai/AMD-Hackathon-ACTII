@@ -6,6 +6,21 @@ import json
 from decimal import Decimal
 from pathlib import Path
 
+from reportlab import rl_config
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.units import mm
+from reportlab.platypus import (
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
+)
+
+rl_config.invariant = True
+
 BASE_DIR = Path(__file__).resolve().parent
 SOURCE_DIR = BASE_DIR / "source"
 GENERATED_DIR = BASE_DIR / "generated"
@@ -195,3 +210,328 @@ def write_manifest(cases: list[dict], path: Path = MANIFEST_PATH) -> dict:
     manifest = build_expected_results(cases)
     path.write_text(json.dumps(manifest, indent=2) + "\n")
     return manifest
+
+
+def _styles():
+    styles = getSampleStyleSheet()
+    styles.add(
+        ParagraphStyle(
+            name="DocumentTitle",
+            parent=styles["Title"],
+            fontName="Helvetica-Bold",
+            fontSize=18,
+            leading=22,
+            textColor=colors.HexColor("#14243B"),
+            spaceAfter=8,
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name="Meta",
+            parent=styles["BodyText"],
+            fontSize=9,
+            leading=13,
+            textColor=colors.HexColor("#334155"),
+        )
+    )
+    return styles
+
+
+def _money(value: object) -> str:
+    return f"{money(value):,.2f}"
+
+
+def _line_table(rows: list[dict], delivery: bool = False) -> Table:
+    if delivery:
+        data = [["SKU", "Description", "Dispatched", "Received", "UOM"]]
+        data += [
+            [
+                row["sku"],
+                row["description"],
+                str(row["dispatched_quantity"]),
+                str(row["received_quantity"]),
+                row["unit"],
+            ]
+            for row in rows
+        ]
+        widths = [27 * mm, 78 * mm, 25 * mm, 23 * mm, 17 * mm]
+    else:
+        data = [["SKU", "Description", "Qty", "UOM", "Unit Price", "Line Total"]]
+        data += [
+            [
+                row["sku"],
+                row["description"],
+                str(row["quantity"]),
+                row["unit"],
+                _money(row["unit_price"]),
+                _money(row["line_total"]),
+            ]
+            for row in rows
+        ]
+        widths = [22 * mm, 66 * mm, 16 * mm, 16 * mm, 25 * mm, 27 * mm]
+
+    table = Table(data, colWidths=widths, repeatRows=1)
+    table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#14243B")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+                ("FONTSIZE", (0, 0), (-1, -1), 8),
+                ("ALIGN", (2, 1), (-1, -1), "RIGHT"),
+                ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#CBD5E1")),
+                (
+                    "ROWBACKGROUNDS",
+                    (0, 1),
+                    (-1, -1),
+                    [colors.white, colors.HexColor("#F8FAFC")],
+                ),
+                ("TOPPADDING", (0, 0), (-1, -1), 6),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+            ]
+        )
+    )
+    return table
+
+
+def _totals_table(document: dict) -> Table:
+    data = [
+        ["Subtotal", f"AUD {_money(document['subtotal'])}"],
+        ["GST", f"AUD {_money(document['gst'])}"],
+        ["Total", f"AUD {_money(document['total'])}"],
+    ]
+    table = Table(data, colWidths=[35 * mm, 40 * mm], hAlign="RIGHT")
+    table.setStyle(
+        TableStyle(
+            [
+                ("ALIGN", (1, 0), (1, -1), "RIGHT"),
+                ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
+                ("LINEABOVE", (0, -1), (-1, -1), 0.8, colors.HexColor("#14243B")),
+                ("FONTSIZE", (0, 0), (-1, -1), 9),
+                ("TOPPADDING", (0, 0), (-1, -1), 4),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ]
+        )
+    )
+    return table
+
+
+def _metadata(text: str, styles) -> Paragraph:
+    return Paragraph(text, styles["Meta"])
+
+
+def document_story(case: dict, kind: str) -> list:
+    styles = _styles()
+    supplier = case["supplier"]
+    retailer = case["retailer"]
+    po = case["po"]
+    invoice = case["invoice"]
+    pod = case["pod"]
+    debit = case["debit_note"]
+    title = {
+        "purchase_order": "PURCHASE ORDER",
+        "invoice": "TAX INVOICE",
+        "delivery_docket": "PROOF OF DELIVERY",
+        "debit_note": "DEBIT NOTE / REMITTANCE ADVICE",
+        "promo_agreement": "PROMOTIONAL FUNDING AGREEMENT",
+    }[kind]
+    story = [
+        Paragraph(title, styles["DocumentTitle"]),
+        _metadata(
+            "SYNTHETIC DEMONSTRATION DOCUMENT - NOT A REAL TRANSACTION", styles
+        ),
+        Spacer(1, 6 * mm),
+    ]
+
+    if kind == "purchase_order":
+        discount = Decimal(str(po["early_payment_discount_rate"]))
+        terms = (
+            f"{int(discount * 100)}% early-payment discount authorised."
+            if discount
+            else "No early-payment discount is authorised."
+        )
+        story += [
+            _metadata(
+                f"<b>Purchase Order:</b> {po['number']}<br/>"
+                f"<b>PO Date:</b> {po['date']}<br/>"
+                f"<b>Delivery Required:</b> {po['delivery_date']}<br/>"
+                f"<b>Buyer:</b> {retailer['name']} (ABN {retailer['abn']})<br/>"
+                f"<b>Supplier:</b> {supplier['name']} "
+                f"(Vendor {supplier['vendor_number']})",
+                styles,
+            ),
+            Spacer(1, 6 * mm),
+            _line_table(po["line_items"]),
+            Spacer(1, 5 * mm),
+            _totals_table(po),
+            Spacer(1, 7 * mm),
+            Paragraph(
+                f"Terms: {terms} Supply is governed by the Food and Grocery "
+                "Code of Conduct.",
+                styles["BodyText"],
+            ),
+        ]
+    elif kind == "invoice":
+        story += [
+            _metadata(
+                f"<b>Invoice Number:</b> {invoice['number']}<br/>"
+                f"<b>Invoice Date:</b> {invoice['date']}<br/>"
+                f"<b>Purchase Order:</b> {po['number']}<br/>"
+                f"<b>From:</b> {supplier['name']} (ABN {supplier['abn']})<br/>"
+                f"<b>Bill To:</b> {retailer['name']}",
+                styles,
+            ),
+            Spacer(1, 6 * mm),
+            _line_table(invoice["line_items"]),
+            Spacer(1, 5 * mm),
+            _totals_table(invoice),
+        ]
+    elif kind == "delivery_docket":
+        story += [
+            _metadata(
+                f"<b>Delivery Note:</b> {pod['number']}<br/>"
+                f"<b>Delivery Date:</b> {pod['date']}<br/>"
+                f"<b>Purchase Order:</b> {po['number']}<br/>"
+                f"<b>Invoice Reference:</b> {invoice['number']}<br/>"
+                f"<b>Received At:</b> {case['delivery_address']}",
+                styles,
+            ),
+            Spacer(1, 6 * mm),
+            _line_table(pod["line_items"], delivery=True),
+            Spacer(1, 7 * mm),
+            Paragraph(
+                f"Received by: {pod['received_by']} - electronic signature recorded.",
+                styles["BodyText"],
+            ),
+        ]
+    elif kind == "debit_note":
+        deduction_data = [["Claim ID", "Reason", "Reference", "Amount"]] + [
+            [
+                row["claim_id"],
+                row["reason"],
+                row["reference"],
+                f"AUD {_money(row['amount'])}",
+            ]
+            for row in debit["deductions"]
+        ]
+        deductions = Table(
+            deduction_data,
+            colWidths=[28 * mm, 76 * mm, 38 * mm, 30 * mm],
+            repeatRows=1,
+        )
+        deductions.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#14243B")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 8),
+                    ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#CBD5E1")),
+                    ("ALIGN", (-1, 1), (-1, -1), "RIGHT"),
+                    ("TOPPADDING", (0, 0), (-1, -1), 6),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                ]
+            )
+        )
+        summary = Table(
+            [
+                ["Gross invoice", f"AUD {_money(debit['gross_amount'])}"],
+                ["Total deductions", f"AUD {_money(debit['total_deductions'])}"],
+                ["Net amount paid", f"AUD {_money(debit['net_amount'])}"],
+            ],
+            colWidths=[38 * mm, 38 * mm],
+            hAlign="RIGHT",
+        )
+        summary.setStyle(
+            TableStyle(
+                [
+                    ("ALIGN", (1, 0), (1, -1), "RIGHT"),
+                    ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
+                    (
+                        "LINEABOVE",
+                        (0, -1),
+                        (-1, -1),
+                        0.8,
+                        colors.HexColor("#14243B"),
+                    ),
+                    ("FONTSIZE", (0, 0), (-1, -1), 9),
+                ]
+            )
+        )
+        story += [
+            _metadata(
+                f"<b>Debit Note:</b> {debit['number']}<br/>"
+                f"<b>Date:</b> {debit['date']}<br/>"
+                f"<b>Supplier:</b> {supplier['name']}<br/>"
+                f"<b>Invoice:</b> {invoice['number']}<br/>"
+                f"<b>Purchase Order:</b> {po['number']}<br/>"
+                f"<b>Delivery Note:</b> {pod['number']}",
+                styles,
+            ),
+            Spacer(1, 6 * mm),
+            deductions,
+            Spacer(1, 5 * mm),
+            summary,
+        ]
+    else:
+        promo = case["promo_agreement"]
+        story += [
+            _metadata(
+                f"<b>Agreement:</b> {promo['number']}<br/>"
+                f"<b>Retailer:</b> {retailer['name']}<br/>"
+                f"<b>Supplier:</b> {supplier['name']}<br/>"
+                f"<b>Purchase Order:</b> {po['number']}<br/>"
+                f"<b>Promotion Window:</b> {promo['start_date']} to "
+                f"{promo['end_date']}<br/>"
+                f"<b>Funding Rate:</b> AUD {_money(promo['funding_rate'])} "
+                "per unit<br/>"
+                f"<b>Maximum Supplier Contribution:</b> "
+                f"AUD {_money(promo['funding_cap'])}<br/>"
+                "<b>Status:</b> Signed by both parties",
+                styles,
+            ),
+            Spacer(1, 8 * mm),
+            Paragraph(
+                "Claims exceeding the agreed cap or falling outside the promotion "
+                "window are not authorised. Any set-off must remain consistent "
+                "with this signed agreement and the Food and Grocery Code of Conduct.",
+                styles["BodyText"],
+            ),
+        ]
+    return story
+
+
+def _footer(canvas, document) -> None:
+    canvas.saveState()
+    canvas.setFont("Helvetica", 7)
+    canvas.setFillColor(colors.HexColor("#64748B"))
+    canvas.drawString(20 * mm, 12 * mm, "Synthetic test fixture - no commercial validity")
+    canvas.drawRightString(190 * mm, 12 * mm, f"Page {document.page}")
+    canvas.restoreState()
+
+
+def render_text_pdf(case: dict, kind: str, target: Path) -> None:
+    target.parent.mkdir(parents=True, exist_ok=True)
+    document = SimpleDocTemplate(
+        str(target),
+        pagesize=A4,
+        leftMargin=20 * mm,
+        rightMargin=20 * mm,
+        topMargin=18 * mm,
+        bottomMargin=20 * mm,
+        title=f"Synthetic {kind}",
+        author="Claims Recovery Demo",
+    )
+    document.build(
+        document_story(case, kind),
+        onFirstPage=_footer,
+        onLaterPages=_footer,
+    )
+
+
+def extract_pdf_text(path: Path) -> str:
+    import pdfplumber
+
+    with pdfplumber.open(path) as pdf:
+        return "\n".join(page.extract_text() or "" for page in pdf.pages)
