@@ -3,8 +3,6 @@ import {
   ReactFlow,
   Background,
   Controls,
-  useNodesState,
-  useEdgesState,
   type Node,
   type Edge,
 } from "@xyflow/react";
@@ -135,25 +133,14 @@ interface CaseGraphProps {
 export function CaseGraph({ graph, isLoading, isError }: CaseGraphProps) {
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
 
-  const initial = useMemo(() => {
+  const { nodes, edges } = useMemo(() => {
     if (!graph) return { nodes: [], edges: [] };
     return layoutNodes(graph.nodes, graph.edges);
   }, [graph]);
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(initial.nodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initial.edges);
-
   useEffect(() => {
     setSelectedDocId(null);
-    if (!graph) {
-      setNodes([]);
-      setEdges([]);
-      return;
-    }
-    const layout = layoutNodes(graph.nodes, graph.edges);
-    setNodes(layout.nodes);
-    setEdges(layout.edges);
-  }, [graph, setNodes, setEdges]);
+  }, [graph]);
 
   if (isLoading) {
     return (
@@ -188,13 +175,14 @@ export function CaseGraph({ graph, isLoading, isError }: CaseGraphProps) {
         <ReactFlow
           nodes={nodes}
           edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
           nodeTypes={nodeTypes}
           onNodeClick={(_event, node) => setSelectedDocId(node.id)}
           fitView
           fitViewOptions={{ padding: 0.3 }}
           defaultEdgeOptions={{ animated: false }}
+          nodesDraggable={false}
+          nodesConnectable={false}
+          edgesReconnectable={false}
         >
           <Background color="var(--color-border)" gap={20} />
           <Controls className="[&_button]:!bg-[var(--color-surface)] [&_button]:!border-[var(--color-border)] [&_button]:!text-[var(--color-foreground-subtle)]" />

@@ -24,3 +24,21 @@ Completed with one environment-level check failure.
 
 ## Concerns
 - Lint could not run because the workspace is missing the `biome` executable in the current environment.
+
+## Fix report
+
+## Status
+Completed.
+
+## Deliverable
+- Made `frontend/src/components/CaseGraph.tsx` read-only by removing client-side node and edge state handlers and disabling node dragging, edge reconnection, and node connections while keeping fitView, pan/zoom, node click selection, and ReactFlow rendering.
+- Updated `frontend/src/routes/GraphRoute.tsx` to show a loading state while `casesQuery` is loading instead of the empty-case message.
+
+## Checks
+- `pnpm --filter @claims/ui typecheck` - passed
+- `pnpm --filter @claims/frontend typecheck` - passed
+- `pnpm --filter @claims/frontend build` - passed
+  - Note: build completed with the existing Vite chunk size warning.
+
+## Concerns
+- None.

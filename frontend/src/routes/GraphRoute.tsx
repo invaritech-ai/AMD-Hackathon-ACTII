@@ -50,7 +50,11 @@ export function GraphRoute() {
 
         <section className="min-w-0">
           <CaseWorkspaceHeader caseItem={activeCase ?? null} isLoading={casesQuery.isLoading} />
-          {casesQuery.isError ? (
+          {casesQuery.isLoading ? (
+            <div className="surface flex min-h-[500px] items-center justify-center rounded-xl px-6 text-center">
+              <p className="max-w-xs text-sm leading-relaxed text-[var(--color-foreground-subtle)]">Loading cases...</p>
+            </div>
+          ) : casesQuery.isError ? (
             <div className="surface flex min-h-[500px] items-center justify-center rounded-xl px-6 text-center">
               <p className="max-w-xs text-sm leading-relaxed text-[var(--color-destructive)]">
                 Cases could not be loaded.
