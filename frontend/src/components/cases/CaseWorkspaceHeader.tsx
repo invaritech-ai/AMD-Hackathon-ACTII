@@ -1,5 +1,6 @@
 import type { CaseSummary, ReconciliationResponse } from "@claims/shared";
 import { Badge, Button, cn } from "@claims/ui";
+import { Link } from "react-router-dom";
 import { caseLabel } from "@/lib/caseLabel";
 
 interface CaseWorkspaceHeaderProps {
@@ -80,6 +81,14 @@ export function CaseWorkspaceHeader({ caseItem, index, isLoading, reconciliation
               {onReconcile && (
                 <Button type="button" variant="secondary" size="sm" disabled={isReconciling} onClick={onReconcile}>
                   {isReconciling ? "Checking..." : reconciliation?.status === "exceptions_found" ? "Recheck" : "Reconcile"}
+                </Button>
+              )}
+              <Button asChild type="button" variant="ghost" size="sm">
+                <Link to={`/cases/${caseItem.case_id}/discrepancies`}>Exceptions</Link>
+              </Button>
+              {reconciliation?.claim && (
+                <Button asChild type="button" variant="ghost" size="sm">
+                  <Link to={`/cases/${caseItem.case_id}/claims`}>Claim</Link>
                 </Button>
               )}
             </div>

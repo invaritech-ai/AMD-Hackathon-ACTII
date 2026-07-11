@@ -17,10 +17,12 @@ export function App() {
       <Routes>
         <Route path="/" element={<UploadRoute />} />
         <Route path="/graph" element={<GraphRoute />} />
-        <Route path="/discrepancies" element={<DiscrepanciesRoute />} />
-        <Route path="/discrepancies/:runId" element={<DiscrepanciesRoute />} />
-        <Route path="/claims" element={<ClaimsRoute />} />
-        <Route path="/claims/:runId" element={<ClaimsRoute />} />
+        <Route path="/cases/:caseId/discrepancies" element={<DiscrepanciesRoute />} />
+        <Route path="/cases/:caseId/claims" element={<ClaimsRoute />} />
+        <Route path="/discrepancies" element={<Navigate to="/graph" replace />} />
+        <Route path="/discrepancies/:runId" element={<Navigate to="/graph" replace />} />
+        <Route path="/claims" element={<Navigate to="/graph" replace />} />
+        <Route path="/claims/:runId" element={<Navigate to="/graph" replace />} />
         <Route path="/ledger" element={<LedgerRoute />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
