@@ -4,7 +4,7 @@ import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { Slot } from "@radix-ui/react-slot";
-import { PanelLeft, PanelRight } from "lucide-react";
+import { PanelLeft, PanelRight, X } from "lucide-react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "../lib/utils";
 
@@ -237,6 +237,14 @@ const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
               <DialogPrimitive.Description className="sr-only">
                 Displays the mobile sidebar.
               </DialogPrimitive.Description>
+              <DialogPrimitive.Close
+                type="button"
+                aria-label="Close sidebar"
+                className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-md text-[var(--color-foreground-subtle)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
+              >
+                <X className="h-4 w-4" aria-hidden="true" />
+                <span className="sr-only">Close sidebar</span>
+              </DialogPrimitive.Close>
               <div className="flex h-full w-full flex-col">{children}</div>
             </DialogPrimitive.Content>
           </DialogPrimitive.Portal>

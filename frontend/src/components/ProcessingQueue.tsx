@@ -115,6 +115,8 @@ export function ProcessingQueue() {
               const progress = item.stage === "uploading" ? item.progress : details.progress;
               const terminal = terminalStages.has(item.stage);
               const roundedProgress = Math.round(progress);
+              const failed = item.stage === "failed";
+              const progressDescription = failed ? "Processing failed before completion" : `${roundedProgress} percent complete`;
 
               return (
                 <div key={item.id} className="px-5 py-4">
@@ -142,21 +144,21 @@ export function ProcessingQueue() {
                           <Badge variant={details.badgeVariant}>{details.badgeLabel}</Badge>
                           <span
                             className={cn("text-[10px] font-[var(--font-mono)]", details.tone)}
-                            aria-label={`${roundedProgress} percent complete`}
+                            aria-label={progressDescription}
                           >
-                            {roundedProgress}%
+                            {failed ? "Failed" : `${roundedProgress}%`}
                           </span>
                         </div>
                       </div>
 
                       <Progress
-                        value={progress}
+                        value={failed ? null : progress}
                         className="h-1.5"
                         aria-labelledby={`processing-queue-file-${item.id}`}
                         aria-describedby={`processing-queue-meta-${item.id}`}
                       />
                       <p id={`processing-queue-meta-${item.id}`} className="sr-only">
-                        File {item.filename}. Stage {details.badgeLabel}. {roundedProgress} percent complete.
+                        File {item.filename}. Stage {details.badgeLabel}. {progressDescription}.
                         {item.error ? ` Error state: ${item.error}.` : ""}
                         {terminal ? " Remove action available." : ""}
                       </p>
