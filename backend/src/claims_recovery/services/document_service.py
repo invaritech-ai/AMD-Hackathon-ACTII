@@ -20,6 +20,8 @@ _LABEL_TO_TYPE = {
     "purchase_order": DocumentType.PURCHASE_ORDER,
     "contract": DocumentType.CONTRACT,
     "delivery_docket": DocumentType.DELIVERY_DOCKET,
+    "remittance_advice": DocumentType.REMITTANCE_ADVICE,
+    "promo_agreement": DocumentType.PROMO_AGREEMENT,
 }
 
 

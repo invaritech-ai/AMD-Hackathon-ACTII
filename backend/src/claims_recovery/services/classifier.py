@@ -32,7 +32,24 @@ _KEYWORDS: dict[DocumentType, tuple[str, ...]] = {
         "delivery note",
         "packing slip",
         "goods received",
+        "proof of delivery",
         "docket",
+        "asn",
+    ),
+    DocumentType.REMITTANCE_ADVICE: (
+        "remittance advice",
+        "remittance",
+        "deductions applied",
+        "claims / deductions",
+        "net amount paid",
+        "debit note",
+    ),
+    DocumentType.PROMO_AGREEMENT: (
+        "promotional funding agreement",
+        "promo funding",
+        "funding cap",
+        "scan rebate",
+        "promotion detail",
     ),
 }
 

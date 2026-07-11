@@ -14,6 +14,8 @@ class DocumentType(str, enum.Enum):
     PURCHASE_ORDER = "purchase_order"
     CONTRACT = "contract"
     DELIVERY_DOCKET = "delivery_docket"
+    REMITTANCE_ADVICE = "remittance_advice"  # retailer payment + deduction/claim list
+    PROMO_AGREEMENT = "promo_agreement"      # promotional funding terms (cap, window)
     UNKNOWN = "unknown"
 
 

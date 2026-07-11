@@ -26,21 +26,33 @@ logger = logging.getLogger(__name__)
 # Identifier fields we ask for across every doc type. A doc carries its own id
 # (an invoice's invoice_number) and often references others (an invoice citing a
 # po_number) — both become edges when the linker runs.
-_ID_FIELDS = ("invoice_number", "po_number", "contract_number", "delivery_note_number")
+_ID_FIELDS = (
+    "invoice_number",
+    "po_number",
+    "contract_number",
+    "delivery_note_number",
+    "promo_agreement_number",
+)
 
 _SYSTEM = (
     "You extract structured data from business documents (invoices, purchase "
-    "orders, contracts, delivery dockets) for a claims-recovery pipeline. Copy "
-    "values verbatim from the text. NEVER compute, sum, or invent a number — "
-    "copy only what is printed. Reply with a single JSON object and nothing else."
+    "orders, contracts, delivery dockets, retailer remittance advices, and "
+    "promotional funding agreements) for a claims-recovery pipeline. Copy values "
+    "verbatim from the text. NEVER compute, sum, or invent a number — copy only "
+    "what is printed. For a remittance advice or debit note, list each deduction "
+    "under `claims`. For a promotional funding agreement, fill `promo`. Reply "
+    "with a single JSON object and nothing else."
 )
 
 _SCHEMA = """{
-  "ids": {"invoice_number": "", "po_number": "", "contract_number": "", "delivery_note_number": ""},
+  "ids": {"invoice_number": "", "po_number": "", "contract_number": "", "delivery_note_number": "", "promo_agreement_number": ""},
   "supplier_name": "",
   "invoice_date": "",
+  "delivery_date": "",
   "currency": "",
   "line_items": [{"description": "", "quantity": 0, "unit": "", "unit_price": 0, "line_total": 0}],
+  "claims": [{"claim_id": "", "reason": "", "reference": "", "amount": 0, "claim_date": "", "delivery_date": ""}],
+  "promo": {"funding_cap": 0, "funding_rate": 0, "start_date": "", "end_date": ""},
   "subtotal": 0,
   "tax": 0,
   "total": 0
@@ -110,12 +122,39 @@ def _normalize(d: dict[str, Any]) -> dict[str, Any]:
         }
         for it in (d.get("line_items") or [])
     ]
+    claims = [
+        {
+            "claim_id": str(c.get("claim_id", "")).strip(),
+            "reason": str(c.get("reason", "")).strip(),
+            "reference": str(c.get("reference", "")).strip(),
+            "amount": _num(c.get("amount")),
+            "claim_date": str(c.get("claim_date", "")).strip(),
+            "delivery_date": str(c.get("delivery_date", "")).strip(),
+        }
+        for c in (d.get("claims") or [])
+    ]
+    promo_in = d.get("promo") or {}
+    promo = {
+        "funding_cap": _num(promo_in.get("funding_cap")),
+        "funding_rate": _num(promo_in.get("funding_rate")),
+        "start_date": str(promo_in.get("start_date", "")).strip(),
+        "end_date": str(promo_in.get("end_date", "")).strip(),
+    }
+    # A deduction's `reference` is a link to the document it's raised against
+    # (an invoice, a promo agreement...). Fold references into the id set so the
+    # linker connects a remittance to the evidence it claims against.
+    for i, c in enumerate(claims):
+        if c["reference"]:
+            ids[f"claim_ref_{i}"] = c["reference"]
     return {
         "ids": ids,
         "supplier_name": str(d.get("supplier_name", "")).strip(),
         "invoice_date": str(d.get("invoice_date", "")).strip(),
+        "delivery_date": str(d.get("delivery_date", "")).strip(),
         "currency": str(d.get("currency", "")).strip(),
         "line_items": items,
+        "claims": claims,
+        "promo": promo,
         "subtotal": _num(d.get("subtotal")),
         "tax": _num(d.get("tax")),
         "total": _num(d.get("total")),

@@ -1,8 +1,8 @@
 """baseline schema
 
-Revision ID: 59dbbdaf196f
+Revision ID: 0f98fdabb0a7
 Revises: 
-Create Date: 2026-07-11 00:07:12.506541
+Create Date: 2026-07-11 15:14:28.718810
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '59dbbdaf196f'
+revision: str = '0f98fdabb0a7'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -62,7 +62,7 @@ def upgrade() -> None:
     op.create_table('documents',
     sa.Column('filename', sa.String(length=512), nullable=False),
     sa.Column('original_filename', sa.String(length=512), nullable=False),
-    sa.Column('type', sa.Enum('INVOICE', 'PURCHASE_ORDER', 'CONTRACT', 'DELIVERY_DOCKET', 'UNKNOWN', name='documenttype'), nullable=False),
+    sa.Column('type', sa.Enum('INVOICE', 'PURCHASE_ORDER', 'CONTRACT', 'DELIVERY_DOCKET', 'REMITTANCE_ADVICE', 'PROMO_AGREEMENT', 'UNKNOWN', name='documenttype'), nullable=False),
     sa.Column('file_path', sa.String(length=1024), nullable=False),
     sa.Column('extracted_text', sa.Text(), nullable=True),
     sa.Column('extracted_json', sa.Text(), nullable=True),
@@ -90,6 +90,20 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_reconciliations_case_id'), 'reconciliations', ['case_id'], unique=False)
+    op.create_table('case_membership_overrides',
+    sa.Column('case_id', sa.String(length=8), nullable=False),
+    sa.Column('document_id', sa.String(length=8), nullable=False),
+    sa.Column('kind', sa.String(length=8), nullable=False),
+    sa.Column('id', sa.String(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['case_id'], ['cases.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['document_id'], ['documents.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('case_id', 'document_id', name='uq_case_override')
+    )
+    op.create_index(op.f('ix_case_membership_overrides_case_id'), 'case_membership_overrides', ['case_id'], unique=False)
+    op.create_index(op.f('ix_case_membership_overrides_document_id'), 'case_membership_overrides', ['document_id'], unique=False)
     op.create_table('doc_links',
     sa.Column('doc_a_id', sa.String(length=8), nullable=False),
     sa.Column('doc_b_id', sa.String(length=8), nullable=False),
@@ -230,6 +244,9 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_doc_links_doc_a_id'), table_name='doc_links')
     op.drop_index(op.f('ix_doc_links_case_id'), table_name='doc_links')
     op.drop_table('doc_links')
+    op.drop_index(op.f('ix_case_membership_overrides_document_id'), table_name='case_membership_overrides')
+    op.drop_index(op.f('ix_case_membership_overrides_case_id'), table_name='case_membership_overrides')
+    op.drop_table('case_membership_overrides')
     op.drop_index(op.f('ix_reconciliations_case_id'), table_name='reconciliations')
     op.drop_table('reconciliations')
     op.drop_index(op.f('ix_documents_case_id'), table_name='documents')

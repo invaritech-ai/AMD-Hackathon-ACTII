@@ -45,10 +45,14 @@ _CLEANUP_PROMPT = (
 )
 _CLASSIFY_PROMPT = (
     "What kind of document is this? Decide, then on the LAST line output exactly one "
-    "of: invoice, purchase_order, contract, delivery_docket, other."
+    "of: invoice, purchase_order, contract, delivery_docket, remittance_advice, "
+    "promo_agreement, other."
 )
 # Longest labels first so 'purchase_order' wins over a stray 'order'.
-_LABELS = ("purchase_order", "delivery_docket", "invoice", "contract", "other")
+_LABELS = (
+    "remittance_advice", "promo_agreement", "purchase_order", "delivery_docket",
+    "invoice", "contract", "other",
+)
 
 
 def _client() -> OpenAI:

@@ -25,6 +25,7 @@ from claims_recovery.schemas.api import (
 from claims_recovery.services.case_graph_service import rebuild_case_graph
 from claims_recovery.services.linker import build_graph
 from claims_recovery.services.reconciliation import reconcile_case
+from claims_recovery.services.triage import has_remittance, triage_case
 
 router = APIRouter(prefix="/api/v1/cases", tags=["cases"])
 
@@ -188,10 +189,21 @@ async def _recon_response(session: AsyncSession, case_id: str) -> Reconciliation
 async def run_reconciliation(
     case_id: str, session: AsyncSession = Depends(get_db)
 ) -> ReconciliationResponse:
-    """Run the deterministic invoice-vs-PO checks over a case; persist + return."""
+    """Run the deterministic checks over a case; persist + return.
+
+    Dispatches on evidence: a case with a retailer remittance advice is triaged
+    deduction-by-deduction (claims-desk); otherwise we fall back to the
+    invoice-vs-PO reconciliation.
+    """
     if await session.get(Case, case_id) is None:
         raise HTTPException(status_code=404, detail="Case not found")
-    await reconcile_case(session, case_id)
+    docs = (
+        await session.execute(select(Document).where(Document.case_id == case_id))
+    ).scalars().all()
+    if has_remittance(docs):
+        await triage_case(session, case_id)
+    else:
+        await reconcile_case(session, case_id)
     return await _recon_response(session, case_id)
 
 
