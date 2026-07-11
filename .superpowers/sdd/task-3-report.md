@@ -3,6 +3,9 @@
 ## Status
 Completed with one environment-level check failure.
 
+## Commit
+`902ba5e` - `refactor: compose case command center from shared primitives`
+
 ## Deliverable
 - Added `frontend/src/hooks/useCases.ts`
 - Added `frontend/src/hooks/useDocuments.ts`
@@ -21,4 +24,3 @@ Completed with one environment-level check failure.
 
 ## Concerns
 - Lint could not run because the workspace is missing the `biome` executable in the current environment.
-
