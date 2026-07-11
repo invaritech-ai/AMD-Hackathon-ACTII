@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { AlertTriangle, FileText, BarChart3, ChevronLeft, ChevronRight, Activity, GitBranch } from "lucide-react";
+import { AlertTriangle, FileText, BarChart3, ChevronLeft, ChevronRight, Activity, GitBranch, type LucideIcon } from "lucide-react";
 import {
   SidebarProvider,
   Sidebar,
@@ -18,24 +18,43 @@ import {
 } from "@claims/ui";
 import { useUIStore } from "@/store/uiStore";
 import { ProcessingQueue } from "@/components/ProcessingQueue";
+import { useCases } from "@/hooks/useCases";
+import { caseScopedPath, type CasePage } from "@/lib/caseRoutes";
 
-const navItems = [
+interface NavItem {
+  to: string;
+  label: string;
+  icon: LucideIcon;
+  casePage?: CasePage;
+}
+
+const navItems: NavItem[] = [
   { to: "/", label: "Pipeline", icon: Activity },
   { to: "/graph", label: "Cases", icon: GitBranch },
-  { to: "/discrepancies", label: "Discrepancies", icon: AlertTriangle },
-  { to: "/claims", label: "Claims", icon: FileText },
+  { to: "/discrepancies", label: "Discrepancies", icon: AlertTriangle, casePage: "discrepancies" },
+  { to: "/claims", label: "Claims", icon: FileText, casePage: "claims" },
   { to: "/ledger", label: "Ledger", icon: BarChart3 },
 ];
 
-function AppSidebarMenu({ pathname }: { pathname: string }) {
+function AppSidebarMenu({ pathname, defaultCaseId, casesLoading }: { pathname: string; defaultCaseId: string | null; casesLoading: boolean }) {
   const { isMobile, setOpenMobile } = useSidebar();
 
   return (
     <SidebarMenu>
       {navItems.map((item) => {
+        const caseDependent = item.casePage !== undefined;
+        const destination = item.casePage
+          ? defaultCaseId
+            ? caseScopedPath(defaultCaseId, item.casePage)
+            : "/graph"
+          : item.to;
         const isActive =
           item.to === "/"
             ? pathname === "/"
+            : item.to === "/discrepancies"
+              ? pathname.startsWith("/discrepancies") || /^\/cases\/[^/]+\/discrepancies(?:\/|$)/.test(pathname)
+              : item.to === "/claims"
+                ? pathname.startsWith("/claims") || /^\/cases\/[^/]+\/claims(?:\/|$)/.test(pathname)
             : pathname.startsWith(item.to);
 
         return (
@@ -52,8 +71,13 @@ function AppSidebarMenu({ pathname }: { pathname: string }) {
               )}
             >
               <NavLink
-                to={item.to}
-                onClick={() => {
+                to={destination}
+                aria-disabled={caseDependent && casesLoading}
+                onClick={(event) => {
+                  if (caseDependent && casesLoading) {
+                    event.preventDefault();
+                    return;
+                  }
                   if (isMobile) {
                     setOpenMobile(false);
                   }
@@ -73,6 +97,8 @@ function AppSidebarMenu({ pathname }: { pathname: string }) {
 export function Layout({ children }: { children: React.ReactNode }) {
   const { sidebarCollapsed, setSidebarCollapsed } = useUIStore();
   const location = useLocation();
+  const casesQuery = useCases();
+  const defaultCaseId = casesQuery.data?.[0]?.case_id ?? null;
 
   return (
     <SidebarProvider
@@ -104,7 +130,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
         <SidebarContent>
           <SidebarGroup className="p-3">
-            <AppSidebarMenu pathname={location.pathname} />
+            <AppSidebarMenu pathname={location.pathname} defaultCaseId={defaultCaseId} casesLoading={casesQuery.isLoading} />
           </SidebarGroup>
         </SidebarContent>
 
