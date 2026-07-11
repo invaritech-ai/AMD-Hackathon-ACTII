@@ -153,6 +153,46 @@ async def detach_document(
     return Response(status_code=204)
 
 
+class RenameRequest(BaseModel):
+    title: str
+
+
+@router.patch("/{case_id}", response_model=CaseSummary)
+async def rename_case(
+    case_id: str,
+    body: RenameRequest,
+    session: AsyncSession = Depends(get_db),
+) -> CaseSummary:
+    """Set a case's display title. Blank clears it back to the derived name."""
+    case = await session.get(Case, case_id)
+    if case is None:
+        raise HTTPException(status_code=404, detail="Case not found")
+
+    case.title = body.title.strip() or None
+    await session.commit()
+
+    count = (
+        await session.execute(
+            select(func.count()).where(Document.case_id == case_id)
+        )
+    ).scalar_one()
+    shared = [
+        value_norm
+        for (value_norm,) in (
+            await session.execute(
+                select(DocLink.value_norm).where(DocLink.case_id == case_id).distinct()
+            )
+        ).all()
+    ]
+    return CaseSummary(
+        case_id=case.id,
+        title=case.title,
+        status=case.status,
+        document_count=count,
+        shared_ids=sorted(shared),
+    )
+
+
 async def _recon_response(session: AsyncSession, case_id: str) -> ReconciliationResponse:
     """Latest reconciliation for a case: its exceptions + the current claim."""
     recon = (
