@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 from pathlib import Path
 
@@ -91,3 +92,35 @@ def test_scan_outputs_have_no_native_text_and_expected_formats(tmp_path: Path):
     assert extract_native_text(pod_png) is None
     assert extract_native_text(scanned_invoice) is None
     assert generate.extract_pdf_text(scanned_invoice).strip() == ""
+
+
+def _hashes(paths: list[Path]) -> dict[str, str]:
+    return {
+        str(path.relative_to(path.parents[1])): hashlib.sha256(
+            path.read_bytes()
+        ).hexdigest()
+        for path in paths
+    }
+
+
+def test_generate_all_matches_manifest_and_is_deterministic(tmp_path: Path):
+    output = tmp_path / "generated"
+    manifest = tmp_path / "expected-results.json"
+
+    first = generate.generate_all(output, manifest)
+    first_hashes = _hashes(first)
+    second = generate.generate_all(output, manifest)
+
+    assert len(first) == 13
+    assert first_hashes == _hashes(second)
+    expected = json.loads(manifest.read_text())
+    expected_names = {
+        document["filename"]
+        for case in expected["cases"]
+        for document in case["documents"]
+    }
+    assert expected_names == {path.name for path in first}
+    assert expected_names == {
+        path.name for path in output.rglob("*") if path.is_file()
+    }
+    assert all(path.stat().st_size > 1000 for path in first)

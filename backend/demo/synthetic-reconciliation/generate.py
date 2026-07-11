@@ -611,3 +611,32 @@ def generate_case(case: dict, output_root: Path = GENERATED_DIR) -> list[Path]:
             render_text_pdf(case, kind, target)
         generated.append(target)
     return generated
+
+
+def generate_all(
+    output_root: Path = GENERATED_DIR,
+    manifest_path: Path = MANIFEST_PATH,
+) -> list[Path]:
+    cases = load_cases()
+    validate_cases(cases)
+    output_root.mkdir(parents=True, exist_ok=True)
+
+    paths = [path for case in cases for path in generate_case(case, output_root)]
+    expected = {path.resolve() for path in paths}
+    actual = {path.resolve() for path in output_root.rglob("*") if path.is_file()}
+    unexpected = sorted(str(path) for path in actual - expected)
+    if unexpected:
+        raise ValueError(f"unexpected generated files: {unexpected}")
+
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    write_manifest(cases, manifest_path)
+    return paths
+
+
+def main() -> None:
+    paths = generate_all()
+    print(f"Generated {len(paths)} synthetic documents across 3 cases.")
+
+
+if __name__ == "__main__":
+    main()
