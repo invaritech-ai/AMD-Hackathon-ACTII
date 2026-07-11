@@ -1,18 +1,45 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { Copy, Printer } from "lucide-react";
-import { Button, Card, CardContent, CardHeader, CardTitle, Badge, Skeleton } from "@claims/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Skeleton,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@claims/ui";
 import { PageContainer } from "@/components/PageContainer";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { useClaims } from "@/hooks/useClaims";
 
+function claimStatusVariant(status: string) {
+  return status === "PAID" ? "success" : status === "SUBMITTED" ? "info" : "neutral";
+}
+
+function severityVariant(severity: string) {
+  return severity === "HIGH" ? "high" : severity === "MEDIUM" ? "medium" : "low";
+}
+
+function typeLabel(value: string) {
+  return value.replaceAll("_", " ");
+}
+
 export function ClaimsRoute() {
   const { runId } = useParams<{ runId: string }>();
   const navigate = useNavigate();
-  const { data: claim, run, isLoading, isError } = useClaims(runId);
+  const { data: claim, run, isLoading, isError, isFetching, refetch } = useClaims(runId);
 
   const handleCopy = () => {
-    if (claim?.draft_text) navigator.clipboard.writeText(claim.draft_text);
+    if (claim?.draft_text) void navigator.clipboard.writeText(claim.draft_text);
   };
 
   const handlePrint = () => window.print();
@@ -30,14 +57,21 @@ export function ClaimsRoute() {
         }
         onBack={runId ? () => navigate("/") : undefined}
         actions={
-          claim ? (
+          runId ? (
             <>
-              <Button variant="secondary" size="sm" onClick={handleCopy}>
-                <Copy className="h-4 w-4" /> Copy
+              <Button variant="secondary" size="sm" onClick={() => void refetch()} disabled={isFetching}>
+                {isFetching ? "Refreshing..." : "Refresh"}
               </Button>
-              <Button variant="secondary" size="sm" onClick={handlePrint}>
-                <Printer className="h-4 w-4" /> Print
-              </Button>
+              {claim ? (
+                <>
+                  <Button variant="secondary" size="sm" onClick={handleCopy}>
+                    <Copy className="h-4 w-4" /> Copy
+                  </Button>
+                  <Button variant="secondary" size="sm" onClick={handlePrint}>
+                    <Printer className="h-4 w-4" /> Print
+                  </Button>
+                </>
+              ) : null}
             </>
           ) : undefined
         }
@@ -63,7 +97,7 @@ export function ClaimsRoute() {
           icon="claims"
           title="Failed to load claim"
           description="Check that the backend is running, then try again."
-          action={{ label: "Retry", onClick: () => window.location.reload() }}
+          action={{ label: "Retry", onClick: () => void refetch() }}
         />
       ) : !claim ? (
         <EmptyState
@@ -89,59 +123,102 @@ export function ClaimsRoute() {
                   <span>PO {claim.po_number}</span>
                 </p>
               </div>
-              <Badge
-                variant={claim.status === "PAID" ? "success" : claim.status === "SUBMITTED" ? "info" : "neutral"}
-              >
-                {claim.status}
-              </Badge>
+              <Badge variant={claimStatusVariant(claim.status)}>{claim.status}</Badge>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="border border-[var(--color-border)] p-6 mb-8 flex items-center justify-between">
-              <div>
-                <p className="text-[10px] font-[var(--font-mono)] tracking-[0.2em] text-[var(--color-foreground-subtle)] mb-1">
-                  TOTAL CLAIM AMOUNT
-                </p>
-                <p className="text-3xl font-[var(--font-mono)] font-semibold text-[var(--color-accent)] tracking-tight">
-                  ${claim.total_claim_amount.toFixed(2)}
-                </p>
-              </div>
+          <CardContent className="space-y-6">
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+              <Card className="border-[var(--color-accent)]/20">
+                <CardContent className="space-y-2 pt-6">
+                  <p className="text-[10px] font-[var(--font-mono)] tracking-[0.2em] text-[var(--color-foreground-subtle)]">
+                    TOTAL CLAIM AMOUNT
+                  </p>
+                  <p className="text-3xl font-[var(--font-mono)] font-semibold tracking-tight text-[var(--color-accent)]">
+                    ${claim.total_claim_amount.toFixed(2)}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Claim metadata</CardTitle>
+                  <CardDescription>Recovered against the original invoice record.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3 font-[var(--font-mono)] text-xs">
+                  <div className="flex items-center justify-between gap-4 border-b border-[var(--color-border)] pb-3">
+                    <span className="text-[var(--color-foreground-subtle)]">Claim number</span>
+                    <span className="text-right text-[var(--color-foreground)]">{claim.claim_number}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-4 border-b border-[var(--color-border)] pb-3">
+                    <span className="text-[var(--color-foreground-subtle)]">Invoice</span>
+                    <span className="text-right text-[var(--color-foreground)]">{claim.invoice_number}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-[var(--color-foreground-subtle)]">Purchase order</span>
+                    <span className="text-right text-[var(--color-foreground)]">{claim.po_number}</span>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
             {claim.draft_text ? (
-              <div className="border border-[var(--color-border)] p-8">
-                <pre className="whitespace-pre-wrap font-[var(--font-mono)] text-sm leading-relaxed text-[var(--color-foreground-subtle)]">
-                  {claim.draft_text}
-                </pre>
-              </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Draft recovery letter</CardTitle>
+                  <CardDescription>Generated claim text for supplier outreach.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <pre className="whitespace-pre-wrap font-[var(--font-mono)] text-sm leading-relaxed text-[var(--color-foreground-subtle)]">
+                    {claim.draft_text}
+                  </pre>
+                </CardContent>
+              </Card>
             ) : (
               run && run.discrepancies.length > 0 && (
-                <div className="space-y-3">
-                  <p className="text-[10px] font-[var(--font-mono)] tracking-[0.2em] text-[var(--color-foreground-subtle)]">
-                    CLAIM LINE ITEMS
-                  </p>
-                  {run.discrepancies.map((d, i) => (
-                    <div
-                      key={i}
-                      className="border border-[var(--color-border)] p-5 flex items-start justify-between hover:border-[var(--color-accent)]/20 transition-colors"
-                    >
-                      <div className="space-y-1.5">
-                        <p className="text-sm text-[var(--color-foreground)]/90">{d.item_description}</p>
-                        <p className="text-xs text-[var(--color-foreground-subtle)] font-[var(--font-mono)]">
-                          {d.discrepancy_type.replace("_", " ")} — Expected ${(d.expected_unit_price ?? 0).toFixed(2)} → Actual ${(d.actual_unit_price ?? 0).toFixed(2)}
-                        </p>
-                      </div>
-                      <div className="text-right space-y-1.5">
-                        <Badge variant={d.severity === "HIGH" ? "high" : d.severity === "MEDIUM" ? "medium" : "low"}>
-                          {d.severity}
-                        </Badge>
-                        <p className="text-sm font-[var(--font-mono)] text-[var(--color-destructive)] tracking-wider">
-                          +${d.difference_amount.toFixed(2)}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Claim line items</CardTitle>
+                    <CardDescription>Every discrepancy contributing to this recovery request.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Item</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Expected</TableHead>
+                          <TableHead>Actual</TableHead>
+                          <TableHead className="text-right">Impact</TableHead>
+                          <TableHead className="text-right">Severity</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {run.discrepancies.map((discrepancy, index) => (
+                          <TableRow key={`${discrepancy.invoice_number}-${index}`}>
+                            <TableCell className="max-w-64 truncate font-medium text-[var(--color-foreground)]">
+                              {discrepancy.item_description}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="neutral">{typeLabel(discrepancy.discrepancy_type)}</Badge>
+                            </TableCell>
+                            <TableCell className="font-[var(--font-mono)] text-xs text-[var(--color-foreground-subtle)]">
+                              ${(discrepancy.expected_unit_price ?? 0).toFixed(2)}
+                            </TableCell>
+                            <TableCell className="font-[var(--font-mono)] text-xs text-[var(--color-foreground-subtle)]">
+                              ${(discrepancy.actual_unit_price ?? 0).toFixed(2)}
+                            </TableCell>
+                            <TableCell className="text-right font-[var(--font-mono)] text-sm text-[var(--color-destructive)]">
+                              +${discrepancy.difference_amount.toFixed(2)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Badge variant={severityVariant(discrepancy.severity)}>{discrepancy.severity}</Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
               )
             )}
           </CardContent>
