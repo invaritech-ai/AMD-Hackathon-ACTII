@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Tailwind v4 auto-detects sources under the app but not sibling workspace
+   packages. Without this, classes used only in @claims/ui (SlideOver, etc.)
+   never get generated. */
+@source "../../packages/ui/src";
+
 /* ─────────── DESIGN TOKENS ─────────── */
 
 @theme {

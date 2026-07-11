@@ -1,57 +1,38 @@
 import * as React from "react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { cn } from "../lib/utils";
 
-interface SlideOverContextValue {
-  open: boolean;
-  setOpen: (open: boolean) => void;
-}
+const SlideOver = DialogPrimitive.Root;
+const SlideOverTrigger = DialogPrimitive.Trigger;
 
-const SlideOverContext = React.createContext<SlideOverContextValue>({ open: false, setOpen: () => {} });
-
-function SlideOver({ children, open, onOpenChange }: { children: React.ReactNode; open?: boolean; onOpenChange?: (open: boolean) => void }) {
-  const [internalOpen, setInternalOpen] = React.useState(false);
-  const value = React.useMemo(
-    () => ({
-      open: open ?? internalOpen,
-      setOpen: onOpenChange ?? setInternalOpen,
-    }),
-    [open, internalOpen, onOpenChange]
-  );
-  return <SlideOverContext.Provider value={value}>{children}</SlideOverContext.Provider>;
-}
-
-function useSlideOver() {
-  return React.useContext(SlideOverContext);
-}
-
-function SlideOverTrigger({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn("cursor-pointer", className)}>{children}</div>;
-}
-
-function SlideOverContent({ children, className }: { children: React.ReactNode; className?: string }) {
-  const { open, setOpen } = useSlideOver();
-  if (!open) return null;
-
-  return (
-    <div className="fixed inset-0 z-50">
-      <div className="fixed inset-0 bg-[var(--color-background)]/85" onClick={() => setOpen(false)} />
-      <div className={cn("fixed right-0 top-0 h-full w-full max-w-xl bg-[var(--color-surface)] border-l border-[var(--color-border)]", className)}>
-        <div className="flex items-center justify-between px-8 py-5">
-          <button
-            onClick={() => setOpen(false)}
-            className="ml-auto text-[var(--color-foreground-subtle)] hover:text-[var(--color-foreground)] transition-colors"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <div className="overflow-y-auto p-8" style={{ maxHeight: "calc(100vh - 57px)" }}>
-          {children}
-        </div>
+const SlideOverContent = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
+>(({ children, className, ...props }, ref) => (
+  <DialogPrimitive.Portal>
+    <DialogPrimitive.Overlay className="fixed inset-0 z-[80] bg-[var(--color-background)]/85" />
+    <DialogPrimitive.Content
+      ref={ref}
+      className={cn(
+        "fixed inset-y-0 right-0 z-[90] flex h-dvh w-[min(760px,calc(100vw-2rem))] max-w-xl flex-col border-l border-[var(--color-border)] bg-[var(--color-surface)] outline-none shadow-2xl",
+        className
+      )}
+      {...props}
+    >
+      <div className="flex h-14 flex-shrink-0 items-center justify-end border-b border-[var(--color-border)] px-6">
+        <DialogPrimitive.Close className="text-[var(--color-foreground-subtle)] transition-colors hover:text-[var(--color-foreground)] focus:outline-none">
+          <X className="h-4 w-4" />
+          <span className="sr-only">Close</span>
+        </DialogPrimitive.Close>
       </div>
-    </div>
-  );
-}
+      <div className="min-h-0 flex-1 overflow-y-auto p-8">
+        {children}
+      </div>
+    </DialogPrimitive.Content>
+  </DialogPrimitive.Portal>
+));
+SlideOverContent.displayName = DialogPrimitive.Content.displayName;
 
 function SlideOverHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return <div className={cn("flex flex-col space-y-2", className)} {...props} />;
@@ -66,4 +47,4 @@ function SlideOverFooter({ className, ...props }: React.HTMLAttributes<HTMLDivEl
   return <div className={cn("flex items-center space-x-3 px-8 py-5", className)} {...props} />;
 }
 
-export { SlideOver, SlideOverTrigger, SlideOverContent, SlideOverHeader, SlideOverTitle, SlideOverDescription, SlideOverFooter, useSlideOver };
+export { SlideOver, SlideOverTrigger, SlideOverContent, SlideOverHeader, SlideOverTitle, SlideOverDescription, SlideOverFooter };
