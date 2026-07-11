@@ -1,0 +1,97 @@
+from __future__ import annotations
+
+from collections import Counter
+from decimal import Decimal
+
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from claims_recovery.models.case_graph import (
+    Case,
+    CaseException,
+    Claim,
+    ClaimStatusEvent,
+    Reconciliation,
+)
+from claims_recovery.schemas.api import (
+    LedgerCaseResponse,
+    LedgerCurrencySummary,
+    LedgerResponse,
+)
+
+
+async def get_case_ledger_row(
+    session: AsyncSession, claim: Claim, case: Case
+) -> LedgerCaseResponse:
+    history = (
+        await session.execute(
+            select(ClaimStatusEvent)
+            .where(ClaimStatusEvent.claim_id == claim.id)
+            .order_by(ClaimStatusEvent.created_at, ClaimStatusEvent.id)
+        )
+    ).scalars().all()
+    latest_reconciliation_id = (
+        await session.execute(
+            select(Reconciliation.id)
+            .where(Reconciliation.case_id == case.id)
+            .order_by(Reconciliation.created_at.desc(), Reconciliation.id.desc())
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    exception_count = 0
+    if latest_reconciliation_id is not None:
+        exception_count = (
+            await session.execute(
+                select(func.count(CaseException.id)).where(
+                    CaseException.reconciliation_id == latest_reconciliation_id
+                )
+            )
+        ).scalar_one()
+
+    return LedgerCaseResponse(
+        case_id=case.id,
+        claim_id=claim.id,
+        title=case.title,
+        status=claim.status,
+        currency=claim.currency or "UNKNOWN",
+        claim_amount=claim.total_amount,
+        recovered_amount=claim.recovered_amount,
+        outstanding_amount=claim.total_amount - claim.recovered_amount,
+        exception_count=exception_count,
+        created_at=claim.created_at,
+        updated_at=claim.updated_at,
+        history=list(history),
+    )
+
+
+async def get_ledger(session: AsyncSession) -> LedgerResponse:
+    records = (
+        await session.execute(
+            select(Claim, Case)
+            .join(Case, Case.id == Claim.case_id)
+            .order_by(Claim.updated_at.desc(), Claim.id.desc())
+        )
+    ).all()
+    rows = [await get_case_ledger_row(session, claim, case) for claim, case in records]
+
+    summaries: list[LedgerCurrencySummary] = []
+    for currency in sorted({row.currency for row in rows}):
+        currency_rows = [row for row in rows if row.currency == currency]
+        total_claimed = sum(
+            (row.claim_amount for row in currency_rows), start=Decimal("0")
+        )
+        total_recovered = sum(
+            (row.recovered_amount for row in currency_rows), start=Decimal("0")
+        )
+        summaries.append(
+            LedgerCurrencySummary(
+                currency=currency,
+                claim_count=len(currency_rows),
+                total_claimed=total_claimed,
+                total_recovered=total_recovered,
+                total_outstanding=total_claimed - total_recovered,
+                status_counts=dict(Counter(row.status for row in currency_rows)),
+            )
+        )
+
+    return LedgerResponse(summaries=summaries, cases=rows)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -117,6 +117,60 @@ class ReconciliationResponse(BaseModel):
     claim: CaseClaimResponse | None = None
 
 
+# ── Ledger ────────────────────────────────────────────
+
+ClaimStatus = Literal[
+    "draft",
+    "submitted",
+    "under_review",
+    "approved",
+    "partially_recovered",
+    "recovered",
+    "rejected",
+    "written_off",
+]
+
+
+class ClaimStatusEventResponse(BaseModel):
+    id: str
+    from_status: str | None
+    to_status: str
+    recovered_amount: Decimal
+    note: str | None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class LedgerCaseResponse(BaseModel):
+    case_id: str
+    claim_id: str
+    title: str | None
+    status: ClaimStatus
+    currency: str
+    claim_amount: Decimal
+    recovered_amount: Decimal
+    outstanding_amount: Decimal
+    exception_count: int
+    created_at: datetime
+    updated_at: datetime
+    history: list[ClaimStatusEventResponse] = Field(default_factory=list)
+
+
+class LedgerCurrencySummary(BaseModel):
+    currency: str
+    claim_count: int
+    total_claimed: Decimal
+    total_recovered: Decimal
+    total_outstanding: Decimal
+    status_counts: dict[str, int]
+
+
+class LedgerResponse(BaseModel):
+    summaries: list[LedgerCurrencySummary] = Field(default_factory=list)
+    cases: list[LedgerCaseResponse] = Field(default_factory=list)
+
+
 # ── Invoice ───────────────────────────────────────────
 
 class LineItemResponse(BaseModel):
@@ -141,4 +195,3 @@ class InvoiceResponse(BaseModel):
     line_items: list[LineItemResponse] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
-

@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from claims_recovery.database import engine
-from claims_recovery.routers import cases, documents
+from claims_recovery.routers import cases, documents, ledger
 
 
 @asynccontextmanager
@@ -39,6 +39,7 @@ app.add_middleware(
 
 app.include_router(documents.router)
 app.include_router(cases.router)
+app.include_router(ledger.router)
 
 
 @app.get("/health")
