@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import { Upload, FileText, X, Sparkles } from "lucide-react";
+import { Upload, FileText, X } from "lucide-react";
 import { Button, Card, CardContent, Spinner, cn } from "@claims/ui";
 import { useUpload } from "@/hooks/useUpload";
 import { PipelineStepper } from "./PipelineStepper";
@@ -32,15 +32,17 @@ export function UploadPanel() {
 
   const handleUpload = () => {
     if (files.length === 0) return;
+    const fileCount = files.length;
     upload.mutate(files, {
       onSuccess: (data) => {
         setRunId(data.run_id);
-        toast.success("Pipeline Started", `Processing ${files.length} file(s)`);
+        toast.success("Pipeline Started", `Processing ${fileCount} file(s)`);
       },
       onError: (error) => {
         toast.error("Upload Failed", error.message);
       },
     });
+    setFiles([]);
   };
 
   if (runId) {
@@ -85,7 +87,7 @@ export function UploadPanel() {
           />
         </div>
         <p className="text-sm text-[var(--color-foreground)] font-medium">
-          Drop invoice PDFs here
+          Drag and drop invoice PDFs here
         </p>
         <p className="text-xs text-[var(--color-foreground-subtle)] mt-1 font-[var(--font-mono)]">
           or click to browse — PDF, image, or spreadsheet
@@ -124,11 +126,11 @@ export function UploadPanel() {
           <Button onClick={handleUpload} disabled={upload.isPending} className="w-full" size="lg" variant="primary">
             {upload.isPending ? (
               <>
-                <Sparkles className="h-4 w-4 animate-spin" />
-                Initializing recovery pipeline...
+                <Spinner className="h-4 w-4" />
+                Uploading {files.length} file{files.length > 1 ? "s" : ""}...
               </>
             ) : (
-              `Run Recovery Pipeline — ${files.length} file${files.length > 1 ? "s" : ""}`
+              `Start Analysis — ${files.length} file${files.length > 1 ? "s" : ""}`
             )}
           </Button>
 

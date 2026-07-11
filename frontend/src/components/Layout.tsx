@@ -2,10 +2,11 @@ import { NavLink, useLocation } from "react-router-dom";
 import { Upload, AlertTriangle, FileText, BarChart3, ChevronLeft, ChevronRight, Activity, GitBranch } from "lucide-react";
 import { cn } from "@claims/ui";
 import { useUIStore } from "@/store/uiStore";
+import { ProcessingQueue } from "@/components/ProcessingQueue";
 
 const navItems = [
   { to: "/", label: "Pipeline", icon: Activity },
-  { to: "/graph", label: "Graph", icon: GitBranch },
+  { to: "/graph", label: "Cases", icon: GitBranch },
   { to: "/discrepancies", label: "Discrepancies", icon: AlertTriangle },
   { to: "/claims", label: "Claims", icon: FileText },
   { to: "/ledger", label: "Ledger", icon: BarChart3 },
@@ -19,18 +20,30 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen overflow-hidden bg-[var(--color-background)]">
       <aside
         className={cn(
-          "flex flex-col bg-[var(--color-surface)] border-r border-[var(--color-border)] z-10 transition-all duration-300",
+          "flex flex-col bg-[var(--color-surface)] border-r border-[var(--color-border)] z-10",
           sidebarCollapsed ? "w-16" : "w-60"
         )}
+        style={{
+          width: sidebarCollapsed ? "4rem" : "15rem",
+          transition: "width 460ms cubic-bezier(0.22, 1, 0.36, 1)",
+          willChange: "width",
+        }}
       >
         <div className="flex h-16 items-center border-b border-[var(--color-border)] px-4">
-          {!sidebarCollapsed && (
-            <div className="flex items-center gap-2.5">
-              <span className="text-[13px] font-[var(--font-display)] font-semibold text-[var(--color-foreground)]">
-                Claims<span className="text-[var(--color-primary)]">Recovery</span>
-              </span>
-            </div>
-          )}
+          <div
+            className="flex min-w-0 overflow-hidden whitespace-nowrap"
+            style={{
+              maxWidth: sidebarCollapsed ? "0px" : "10rem",
+              opacity: sidebarCollapsed ? 0 : 1,
+              transform: sidebarCollapsed ? "translateX(-0.25rem)" : "translateX(0)",
+              transition: "max-width 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 140ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1)",
+              transitionDelay: sidebarCollapsed ? "0ms" : "120ms",
+            }}
+          >
+            <span className="text-[13px] font-[var(--font-display)] font-semibold text-[var(--color-foreground)]">
+              Claims<span className="text-[var(--color-primary)]">Recovery</span>
+            </span>
+          </div>
           <button
             onClick={toggleSidebar}
             className={cn(
@@ -64,7 +77,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 )}
               >
                 <item.icon className={cn("h-4 w-4 shrink-0", isActive && "text-[var(--color-primary-foreground)]")} />
-                {!sidebarCollapsed && <span>{item.label}</span>}
+                <span
+                  className="overflow-hidden whitespace-nowrap"
+                  style={{
+                    maxWidth: sidebarCollapsed ? "0px" : "7rem",
+                    opacity: sidebarCollapsed ? 0 : 1,
+                    transform: sidebarCollapsed ? "translateX(-0.25rem)" : "translateX(0)",
+                    transition: "max-width 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 140ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1)",
+                    transitionDelay: sidebarCollapsed ? "0ms" : "120ms",
+                  }}
+                >
+                  {item.label}
+                </span>
               </NavLink>
             );
           })}
@@ -77,19 +101,27 @@ export function Layout({ children }: { children: React.ReactNode }) {
               SYSTEM ACTIVE
             </span>
           </div>
-          {!sidebarCollapsed && (
-            <p className="text-[10px] text-[var(--color-foreground-subtle)] font-[var(--font-mono)] mt-2 leading-relaxed">
-              RECOVERY ENGINE v1.0
-              <br />
-              AMD HACKATHON ACT-II
-            </p>
-          )}
+          <p
+            className="mt-2 overflow-hidden whitespace-nowrap text-[10px] leading-relaxed text-[var(--color-foreground-subtle)] font-[var(--font-mono)]"
+            style={{
+              maxHeight: sidebarCollapsed ? "0px" : "2.5rem",
+              opacity: sidebarCollapsed ? 0 : 1,
+              transform: sidebarCollapsed ? "translateY(-0.25rem)" : "translateY(0)",
+              transition: "max-height 180ms cubic-bezier(0.22, 1, 0.36, 1), opacity 130ms ease, transform 180ms cubic-bezier(0.22, 1, 0.36, 1)",
+              transitionDelay: sidebarCollapsed ? "0ms" : "120ms",
+            }}
+          >
+            RECOVERY ENGINE v1.0
+            <br />
+            AMD HACKATHON ACT-II
+          </p>
         </div>
       </aside>
 
       <main className="flex-1 overflow-y-auto">
         {children}
       </main>
+      <ProcessingQueue />
     </div>
   );
 }

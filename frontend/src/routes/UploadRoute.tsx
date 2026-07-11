@@ -6,10 +6,10 @@ export function UploadRoute() {
   return (
     <PageContainer>
       <PageHeader
-        title="Claims Recovery Engine"
+        title="Document Processing"
         label="Pipeline"
         labelColor="bg-[var(--color-primary)]"
-        description="Drop PDF, images, and spreadsheets. AI agents cross-reference against purchase orders and pricing contracts to surface discrepancies and draft recovery claims."
+        description="Upload invoices, purchase orders, and contracts. The system cross-references documents against agreements to detect discrepancies and generate recovery claims."
       />
       <UploadPanel />
     </PageContainer>

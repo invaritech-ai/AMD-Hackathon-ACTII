@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   ReactFlow,
   Background,
@@ -7,16 +7,14 @@ import {
   useEdgesState,
   type Node,
   type Edge,
-  type Connection,
   Handle,
   Position,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { useGraph } from "@/hooks/useGraph";
-import { useQueryClient } from "@tanstack/react-query";
-import type { DocType } from "@claims/shared";
+import { Spinner } from "@claims/ui";
+import { DocumentDetailPanel } from "./DocumentDetailPanel";
+import type { DocType, GraphResponse } from "@claims/shared";
 
-// ── node colors by document type ──
 const typeColor: Record<DocType, string> = {
   invoice: "#F59E0B",
   purchase_order: "#8B5CF6",
@@ -33,7 +31,6 @@ const typeColorBg: Record<DocType, string> = {
   unknown: "rgb(100 116 139 / 0.15)",
 };
 
-// ── case halo colors ──
 const caseColors = [
   "rgb(245 158 11 / 0.08)",
   "rgb(139 92 246 / 0.08)",
@@ -95,8 +92,6 @@ function layoutNodes(
     });
   }
 
-  // Use edge label only for edges that are not already part of the backend data
-  const edgeSet = new Set(graphEdges.map((e) => `${e.source}->${e.target}`));
   const edges: Edge[] = graphEdges.map((e) => ({
     id: `${e.source}-${e.target}`,
     source: e.source,
@@ -113,7 +108,6 @@ function layoutNodes(
   return { nodes, edges, caseZones };
 }
 
-// ── custom node ──
 function DocumentNode({ data }: { data: { filename: string; docType: DocType; ids: string[]; caseId: string } }) {
   const color = typeColor[data.docType];
   const bg = typeColorBg[data.docType];
@@ -143,9 +137,14 @@ function DocumentNode({ data }: { data: { filename: string; docType: DocType; id
 
 const nodeTypes = { documentNode: DocumentNode };
 
-export function CaseGraph() {
-  const { data, isLoading, isError } = useGraph();
-  const queryClient = useQueryClient();
+interface CaseGraphProps {
+  data?: GraphResponse;
+  isLoading: boolean;
+  isError: boolean;
+}
+
+export function CaseGraph({ data, isLoading, isError }: CaseGraphProps) {
+  const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
 
   const initial = useMemo(() => {
     if (!data) return { nodes: [], edges: [], caseZones: [] };
@@ -155,34 +154,18 @@ export function CaseGraph() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initial.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initial.edges);
 
-  // sync when data changes
-  useMemo(() => {
+  useEffect(() => {
     if (!data) return;
     const layout = layoutNodes(data.nodes, data.edges);
     setNodes(layout.nodes);
     setEdges(layout.edges);
   }, [data, setNodes, setEdges]);
 
-  const onConnect = useCallback(
-    (params: Connection) => {
-      setEdges((eds) => [
-        ...eds,
-        {
-          id: `manual-${params.source}-${params.target}`,
-          source: params.source!,
-          target: params.target!,
-          animated: true,
-          style: { stroke: "var(--color-primary)", strokeWidth: 2, strokeDasharray: "4 2" },
-        },
-      ]);
-    },
-    [setEdges]
-  );
-
   if (isLoading) {
     return (
-      <div className="w-full border border-dashed border-[var(--color-border)] rounded-lg flex items-center justify-center min-h-[500px]">
-        <p className="text-sm text-[var(--color-foreground-subtle)] font-[var(--font-mono)]">Loading graph...</p>
+      <div className="w-full border border-dashed border-[var(--color-border)] rounded-lg flex flex-col items-center justify-center min-h-[500px] gap-3">
+        <Spinner className="h-5 w-5" />
+        <p className="text-sm text-[var(--color-foreground-subtle)] font-[var(--font-mono)]">Loading graph</p>
       </div>
     );
   }
@@ -199,43 +182,32 @@ export function CaseGraph() {
     return (
       <div className="w-full border border-dashed border-[var(--color-border)] rounded-lg flex items-center justify-center min-h-[500px]">
         <p className="text-sm text-[var(--color-foreground-subtle)] font-[var(--font-mono)]">
-          No documents uploaded yet — drop files in the Pipeline to see the graph.
+          This case has no resolved documents yet.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="w-full border border-[var(--color-border)] rounded-lg overflow-hidden" style={{ height: 560 }}>
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        nodeTypes={nodeTypes}
-        fitView
-        fitViewOptions={{ padding: 0.3 }}
-        defaultEdgeOptions={{ animated: false }}
-      >
-        {/* case halos */}
-        {initial.caseZones.map((zone) => (
-          <div
-            key={zone.id}
-            className="absolute pointer-events-none rounded-xl border border-dashed"
-            style={{
-              left: zone.bounds.x,
-              top: zone.bounds.y,
-              width: zone.bounds.w,
-              height: zone.bounds.h,
-              background: zone.color,
-              borderColor: zone.color,
-            }}
-          />
-        ))}
-        <Background color="var(--color-border)" gap={20} />
-        <Controls className="[&_button]:!bg-[var(--color-surface)] [&_button]:!border-[var(--color-border)] [&_button]:!text-[var(--color-foreground-subtle)]" />
-      </ReactFlow>
-    </div>
+    <>
+      <div className="w-full border border-[var(--color-border)] rounded-lg overflow-hidden" style={{ height: 560 }}>
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          nodeTypes={nodeTypes}
+          onNodeClick={(_event, node) => setSelectedDocId(node.id)}
+          nodesConnectable={false}
+          fitView
+          fitViewOptions={{ padding: 0.3 }}
+          defaultEdgeOptions={{ animated: false }}
+        >
+          <Background color="var(--color-border)" gap={20} />
+          <Controls className="[&_button]:!bg-[var(--color-surface)] [&_button]:!border-[var(--color-border)] [&_button]:!text-[var(--color-foreground-subtle)]" />
+        </ReactFlow>
+      </div>
+      <DocumentDetailPanel documentId={selectedDocId} onClose={() => setSelectedDocId(null)} />
+    </>
   );
 }

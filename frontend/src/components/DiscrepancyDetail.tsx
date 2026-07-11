@@ -87,7 +87,7 @@ export function DiscrepancyDetail({ discrepancies }: DiscrepancyDetailProps) {
           {d.explanation && (
             <div className="border border-[var(--color-accent)]/20 p-6 space-y-3 bg-[var(--color-surface)]/50">
               <p className="text-[10px] font-[var(--font-mono)] tracking-[0.2em] text-[var(--color-accent)]">
-                AI ANALYSIS
+                Analysis
               </p>
               <p className="text-sm text-[var(--color-foreground)]/80 leading-relaxed">{d.explanation}</p>
             </div>

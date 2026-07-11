@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { CheckCircle, Sparkles, AlertCircle } from "lucide-react";
+import { CheckCircle, AlertCircle } from "lucide-react";
 import { Card, CardContent, Stepper, Badge, Button, Spinner, Skeleton, cn } from "@claims/ui";
 import { useRunStatus } from "@/hooks/useRunStatus";
 import type { AgentId, AgentStatusValue } from "@claims/shared";
@@ -96,9 +96,9 @@ export function PipelineStepper({ runId }: PipelineStepperProps) {
 
       {isRunning && (
         <div className="flex items-center gap-3 text-sm text-[var(--color-foreground-subtle)] font-[var(--font-mono)]">
-          <Sparkles className="h-4 w-4 text-[var(--color-primary)]" />
+          <Spinner className="h-4 w-4" />
           <span>
-            Agent {activeStep}: {AGENT_STEPS[activeStep - 1]?.label} running...
+            Step {activeStep}: {AGENT_STEPS[activeStep - 1]?.label} running
           </span>
         </div>
       )}
@@ -127,7 +127,7 @@ export function PipelineStepper({ runId }: PipelineStepperProps) {
             <div className="flex items-center gap-3 border border-[var(--color-success)]/20 px-5 py-4">
               <CheckCircle className="h-5 w-5 text-[var(--color-success)]" />
               <p className="text-sm text-[var(--color-success)] font-[var(--font-mono)]">
-                All clear — no discrepancies detected
+                No discrepancies detected
               </p>
             </div>
           )}
