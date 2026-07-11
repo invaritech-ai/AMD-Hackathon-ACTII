@@ -104,11 +104,27 @@ class CaseException(Base, TimestampMixin):
 
 class Claim(Base, TimestampMixin):
     __tablename__ = "claims"
+    __table_args__ = (UniqueConstraint("case_id", name="uq_claim_case"),)
 
     case_id: Mapped[str] = mapped_column(
         String(8), ForeignKey("cases.id", ondelete="CASCADE"), index=True
     )
     total_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0)
+    recovered_amount: Mapped[Decimal] = mapped_column(
+        Numeric(12, 2), default=0, server_default="0"
+    )
     currency: Mapped[str | None] = mapped_column(String(32), nullable=True)
     draft_text: Mapped[str | None] = mapped_column(Text, nullable=True)
-    status: Mapped[str] = mapped_column(String(16), default="draft")  # draft|submitted|accepted|paid
+    status: Mapped[str] = mapped_column(String(32), default="draft")
+
+
+class ClaimStatusEvent(Base, TimestampMixin):
+    __tablename__ = "claim_status_events"
+
+    claim_id: Mapped[str] = mapped_column(
+        String(8), ForeignKey("claims.id", ondelete="CASCADE"), index=True
+    )
+    from_status: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    to_status: Mapped[str] = mapped_column(String(32))
+    recovered_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)

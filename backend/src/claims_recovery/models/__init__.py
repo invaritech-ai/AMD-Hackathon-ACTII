@@ -5,6 +5,7 @@ from claims_recovery.models.case_graph import (
     Case,
     CaseException,
     Claim,
+    ClaimStatusEvent,
     DocLink,
     Reconciliation,
 )
@@ -16,6 +17,7 @@ __all__ = [
     "Case",
     "CaseException",
     "Claim",
+    "ClaimStatusEvent",
     "DocLink",
     "Document",
     "DocumentType",
