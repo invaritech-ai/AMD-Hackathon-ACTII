@@ -45,9 +45,9 @@ function AppSidebarMenu({ pathname }: { pathname: string }) {
               isActive={isActive}
               tooltip={item.label}
               className={cn(
-                "px-3 text-xs font-medium tracking-[0.05em]",
+                "px-3 text-[13px] font-medium tracking-[0.01em]",
                 isActive
-                  ? "bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:bg-[var(--color-primary)] hover:text-[var(--color-primary-foreground)]"
+                  ? "font-semibold"
                   : "text-[var(--color-foreground-subtle)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-foreground)]"
               )}
             >
@@ -78,7 +78,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <SidebarProvider
       open={!sidebarCollapsed}
       onOpenChange={(open) => setSidebarCollapsed(!open)}
-      className="h-screen overflow-hidden bg-[var(--color-background)]"
+      className="h-dvh min-h-dvh overflow-hidden bg-[var(--color-background)]"
       style={
         {
           "--sidebar-width": "15rem",
@@ -124,11 +124,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <SidebarRail />
       </Sidebar>
 
-      <SidebarInset className="overflow-hidden">
+      <SidebarInset className="min-w-0 overflow-hidden">
         <div className="flex h-14 items-center border-b border-[var(--color-border)] px-4 md:hidden">
           <SidebarTrigger />
         </div>
-        <div className="flex-1 overflow-y-auto">
+        <div className="min-w-0 flex-1 overflow-y-auto">
           {children}
         </div>
       </SidebarInset>

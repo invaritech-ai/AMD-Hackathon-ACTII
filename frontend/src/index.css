@@ -13,28 +13,32 @@
   --font-ui: "Fira Sans", system-ui, sans-serif;
   --font-mono: "Fira Code", ui-monospace, "Cascadia Code", "Source Code Pro", monospace;
 
-  /* Color System - High Contrast Enterprise */
-  --color-background: #0F172A;
-  --color-surface: #1E293B;
-  --color-surface-hover: #334155;
-  --color-border: #334155;
-  --color-border-light: #475569;
+  /* Color System - Claims Recovery Command Center */
+  --color-background: #0B1220;
+  --color-canvas: #0F192A;
+  --color-surface: #162238;
+  --color-surface-raised: #1B2941;
+  --color-surface-hover: #202F48;
+  --color-border: #2B3B55;
+  --color-border-light: #40516D;
 
-  --color-foreground: #F8FAFC;
-  --color-foreground-muted: #94A3B8;
-  --color-foreground-subtle: #64748B;
+  --color-foreground: #F4F7FB;
+  --color-foreground-muted: #A8B5C8;
+  --color-foreground-subtle: #71819A;
 
-  --color-primary: #F59E0B;
-  --color-primary-hover: #FBBF24;
-  --color-primary-foreground: #0F172A;
+  --color-primary: #F6A623;
+  --color-primary-hover: #FFC04D;
+  --color-primary-foreground: #111827;
+  --color-primary-soft: rgb(246 166 35 / 0.13);
+  --color-primary-border: rgb(246 166 35 / 0.36);
 
-  --color-accent: #8B5CF6;
-  --color-accent-foreground: #F8FAFC;
+  --color-accent: #F6A623;
+  --color-accent-foreground: #111827;
 
-  --color-success: #10B981;
-  --color-warning: #F59E0B;
-  --color-destructive: #EF4444;
-  --color-destructive-foreground: #F8FAFC;
+  --color-success: #2BCB88;
+  --color-warning: #F6A623;
+  --color-destructive: #F16464;
+  --color-destructive-foreground: #F4F7FB;
 
   /* Spacing Scale */
   --spacing-section: 4rem;
@@ -43,8 +47,10 @@
 
   /* Animation - Functional Only */
   --duration-fast: 150ms;
-  --duration-normal: 200ms;
-  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --duration-normal: 180ms;
+  --duration-interaction: 180ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ─────────── BASE ─────────── */
@@ -59,6 +65,7 @@
   html {
     background: var(--color-background);
     color: var(--color-foreground);
+    color-scheme: dark;
     -webkit-font-smoothing: antialiased;
     font-family: var(--font-ui);
     font-size: 16px;
@@ -66,7 +73,9 @@
   }
 
   body {
-    background: var(--color-background);
+    background:
+      radial-gradient(circle at 52% -18%, rgb(47 71 108 / 0.18), transparent 46rem),
+      var(--color-background);
     font-family: var(--font-ui);
     font-weight: 400;
     margin: 0;
@@ -119,12 +128,26 @@
   .surface {
     background: var(--color-surface);
     border: 1px solid var(--color-border);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.025);
   }
 
   .surface-elevated {
-    background: var(--color-surface);
+    background: var(--color-surface-raised);
     border: 1px solid var(--color-border);
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.3);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.035), 0 18px 40px rgb(3 9 20 / 0.22);
+  }
+
+  .surface-recessed {
+    background: var(--color-canvas);
+    border: 1px solid rgb(64 81 109 / 0.72);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.02);
+  }
+
+  .workspace-bezel {
+    border: 1px solid rgb(64 81 109 / 0.7);
+    border-radius: 1rem;
+    background: linear-gradient(145deg, rgb(255 255 255 / 0.025), transparent 30%), var(--color-surface);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.035), 0 20px 48px rgb(3 9 20 / 0.2);
   }
 
   /* Typography Helpers */
@@ -134,10 +157,10 @@
   }
 
   .text-label {
-    font-size: 0.75rem;
-    font-weight: 500;
+    font-size: 0.6875rem;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.12em;
     color: var(--color-foreground-subtle);
   }
 
@@ -150,8 +173,11 @@
 
   /* Interactive States */
   .interactive {
-    transition: background-color var(--duration-fast) var(--ease-out),
-                border-color var(--duration-fast) var(--ease-out);
+    transition: background-color var(--duration-interaction) var(--ease-emphasized),
+                border-color var(--duration-interaction) var(--ease-emphasized),
+                color var(--duration-interaction) var(--ease-emphasized),
+                box-shadow var(--duration-interaction) var(--ease-emphasized),
+                transform var(--duration-interaction) var(--ease-emphasized);
   }
 
   .interactive:hover {
@@ -223,13 +249,21 @@
     border-radius: 0.375rem;
     border: 1px solid transparent;
     cursor: pointer;
-    transition: all var(--duration-fast) var(--ease-out);
+    transition: background-color var(--duration-interaction) var(--ease-emphasized),
+                border-color var(--duration-interaction) var(--ease-emphasized),
+                color var(--duration-interaction) var(--ease-emphasized),
+                box-shadow var(--duration-interaction) var(--ease-emphasized),
+                transform var(--duration-interaction) var(--ease-emphasized);
     font-family: var(--font-ui);
   }
 
   .btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  .btn:active:not(:disabled) {
+    transform: scale(0.985);
   }
 
   .btn-primary {
@@ -272,7 +306,9 @@
     color: var(--color-foreground);
     font-size: 0.875rem;
     font-family: var(--font-ui);
-    transition: border-color var(--duration-fast) var(--ease-out);
+    transition: border-color var(--duration-interaction) var(--ease-emphasized),
+                box-shadow var(--duration-interaction) var(--ease-emphasized),
+                background-color var(--duration-interaction) var(--ease-emphasized);
   }
 
   .input:focus {
@@ -361,6 +397,15 @@
   @keyframes marching-ants {
     0% { background-position: 0 0, 100% 100%, 0 100%, 100% 0; }
     100% { background-position: 16px 0, calc(100% - 16px) 100%, 0 calc(100% - 16px), 100% 16px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 1ms !important;
+      animation-iteration-count: 1 !important;
+      scroll-behavior: auto !important;
+      transition-duration: 1ms !important;
+    }
   }
 
   /* Print Styles */

@@ -203,7 +203,7 @@ const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
         <div
           ref={ref}
           className={cn(
-            "flex h-full w-[--sidebar-width] flex-col bg-[var(--color-surface)] text-[var(--color-foreground)]",
+            "flex h-full w-[var(--sidebar-width)] flex-col bg-[var(--color-surface)] text-[var(--color-foreground)]",
             className
           )}
           {...props}
@@ -223,7 +223,7 @@ const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
               data-sidebar="sidebar"
               data-mobile="true"
               className={cn(
-                "fixed inset-y-0 z-50 flex h-dvh w-[--sidebar-width-mobile] max-w-[calc(100vw-1rem)] flex-col bg-[var(--color-surface)] p-0 text-[var(--color-foreground)] shadow-2xl outline-none",
+                "fixed inset-y-0 z-50 flex h-dvh w-[var(--sidebar-width-mobile)] max-w-[calc(100vw-1rem)] flex-col bg-[var(--color-surface)] p-0 text-[var(--color-foreground)] shadow-2xl outline-none",
                 side === "left"
                   ? "left-0 border-r border-[var(--color-border)]"
                   : "right-0 border-l border-[var(--color-border)]",
@@ -263,23 +263,23 @@ const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
       >
         <div
           className={cn(
-            "relative w-[--sidebar-width] bg-transparent transition-[width] duration-200 ease-linear",
+            "relative w-[var(--sidebar-width)] bg-transparent transition-[width] duration-200 ease-linear",
             "group-data-[collapsible=offcanvas]:w-0",
             "group-data-[side=right]:rotate-180",
             variant === "floating" || variant === "inset"
               ? "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)_+_1rem)]"
-              : "group-data-[collapsible=icon]:w-[--sidebar-width-icon]"
+              : "group-data-[collapsible=icon]:w-[var(--sidebar-width-icon)]"
           )}
         />
         <div
           className={cn(
-            "fixed inset-y-0 z-40 hidden h-svh w-[--sidebar-width] transition-[left,right,width] duration-200 ease-linear md:flex",
+            "fixed inset-y-0 z-40 hidden h-svh w-[var(--sidebar-width)] transition-[left,right,width] duration-200 ease-linear md:flex",
             side === "left"
               ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
               : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
             variant === "floating" || variant === "inset"
               ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)_+_1rem)]"
-              : "group-data-[collapsible=icon]:w-[--sidebar-width-icon] group-data-[side=left]:border-r group-data-[side=right]:border-l",
+              : "group-data-[collapsible=icon]:w-[var(--sidebar-width-icon)] group-data-[side=left]:border-r group-data-[side=right]:border-l",
             className
           )}
           {...props}
@@ -491,7 +491,7 @@ const SidebarMenuItem = React.forwardRef<
 SidebarMenuItem.displayName = "SidebarMenuItem";
 
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none transition-[width,height,padding,background-color,color] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-foreground)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] active:bg-[var(--color-surface-hover)] active:text-[var(--color-foreground)] disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-[var(--color-surface-hover)] data-[active=true]:font-medium data-[active=true]:text-[var(--color-foreground)] data-[state=open]:hover:bg-[var(--color-surface-hover)] data-[state=open]:hover:text-[var(--color-foreground)] group-data-[collapsible=icon]:!h-8 group-data-[collapsible=icon]:!w-8 group-data-[collapsible=icon]:!p-2 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
+  "peer/menu-button relative flex w-full items-center gap-2 overflow-hidden rounded-lg border border-transparent p-2 text-left text-sm outline-none transition-[background-color,border-color,color,box-shadow,transform] duration-[var(--duration-interaction)] ease-[var(--ease-emphasized)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-foreground)] focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface)] active:scale-[0.985] active:bg-[var(--color-surface-hover)] active:text-[var(--color-foreground)] disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:border-[var(--color-primary-border)] data-[active=true]:bg-[var(--color-primary-soft)] data-[active=true]:font-semibold data-[active=true]:text-[var(--color-foreground)] data-[active=true]:shadow-[inset_3px_0_0_var(--color-primary),0_10px_24px_rgb(246_166_35_/_0.1)] data-[active=true]:[&>svg]:text-[var(--color-primary)] data-[state=open]:hover:bg-[var(--color-surface-hover)] data-[state=open]:hover:text-[var(--color-foreground)] group-data-[collapsible=icon]:!h-8 group-data-[collapsible=icon]:!w-8 group-data-[collapsible=icon]:!p-2 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
   {
     variants: {
       variant: {
