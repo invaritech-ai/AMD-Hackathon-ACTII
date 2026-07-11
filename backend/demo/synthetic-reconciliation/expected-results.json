@@ -1,0 +1,128 @@
+{
+  "currency": "AUD",
+  "expected_case_count": 3,
+  "cases": [
+    {
+      "case_id": "case-01",
+      "label": "Clean reconciliation",
+      "supplier": "Coastal Dairy Foods Pty Ltd",
+      "document_count": 4,
+      "documents": [
+        {
+          "type": "purchase_order",
+          "filename": "01_purchase_order_4501001001.pdf"
+        },
+        {
+          "type": "invoice",
+          "filename": "02_invoice_INV-CDF-260701.pdf"
+        },
+        {
+          "type": "delivery_docket",
+          "filename": "03_pod_POD-CDF-260701.pdf"
+        },
+        {
+          "type": "debit_note",
+          "filename": "04_debit_note_DN-CDF-260731.pdf"
+        }
+      ],
+      "identifiers": {
+        "po_number": "4501001001",
+        "invoice_number": "INV-CDF-260701",
+        "delivery_note_number": "POD-CDF-260701",
+        "debit_note_number": "DN-CDF-260731"
+      },
+      "discrepancies": [],
+      "legitimate_deduction": "180.00",
+      "recoverable_total": "0.00"
+    },
+    {
+      "case_id": "case-02",
+      "label": "Delivery and deduction dispute",
+      "supplier": "Riverina Fresh Produce Pty Ltd",
+      "document_count": 4,
+      "documents": [
+        {
+          "type": "purchase_order",
+          "filename": "01_purchase_order_4501002002.pdf"
+        },
+        {
+          "type": "invoice",
+          "filename": "02_invoice_INV-RFP-260702.pdf"
+        },
+        {
+          "type": "delivery_docket",
+          "filename": "03_pod_POD-RFP-260702.jpg"
+        },
+        {
+          "type": "debit_note",
+          "filename": "04_debit_note_DN-RFP-260731.pdf"
+        }
+      ],
+      "identifiers": {
+        "po_number": "4501002002",
+        "invoice_number": "INV-RFP-260702",
+        "delivery_note_number": "POD-RFP-260702",
+        "debit_note_number": "DN-RFP-260731"
+      },
+      "discrepancies": [
+        {
+          "type": "shortage_quantity_overstated",
+          "amount": "125.00"
+        },
+        {
+          "type": "deduction_rate_above_po",
+          "amount": "50.00"
+        }
+      ],
+      "legitimate_deduction": "125.00",
+      "recoverable_total": "175.00"
+    },
+    {
+      "case_id": "case-03",
+      "label": "Invalid retailer deductions",
+      "supplier": "Southern Harvest Foods Pty Ltd",
+      "document_count": 5,
+      "documents": [
+        {
+          "type": "purchase_order",
+          "filename": "01_purchase_order_4501003003.pdf"
+        },
+        {
+          "type": "invoice",
+          "filename": "02_invoice_INV-SHF-260703_scanned.pdf"
+        },
+        {
+          "type": "delivery_docket",
+          "filename": "03_pod_POD-SHF-260703.png"
+        },
+        {
+          "type": "debit_note",
+          "filename": "04_debit_note_DN-SHF-260731.pdf"
+        },
+        {
+          "type": "promo_agreement",
+          "filename": "05_promo_agreement_PROMO-2026-Q3-0312.pdf"
+        }
+      ],
+      "identifiers": {
+        "po_number": "4501003003",
+        "invoice_number": "INV-SHF-260703",
+        "delivery_note_number": "POD-SHF-260703",
+        "debit_note_number": "DN-SHF-260731",
+        "promo_agreement_number": "PROMO-2026-Q3-0312"
+      },
+      "discrepancies": [
+        {
+          "type": "shrinkage_prohibited",
+          "amount": "420.00"
+        },
+        {
+          "type": "promo_over_cap",
+          "amount": "900.00"
+        }
+      ],
+      "legitimate_deduction": "0.00",
+      "recoverable_total": "1320.00"
+    }
+  ]
+}

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import copy
+import json
+from pathlib import Path
 
 import pytest
 
@@ -32,3 +34,25 @@ def test_validation_rejects_duplicate_identifiers():
 
     with pytest.raises(ValueError, match="duplicate identifier"):
         generate.validate_cases(broken)
+
+
+def test_expected_results_capture_graph_and_recovery_ground_truth(tmp_path: Path):
+    cases = generate.load_cases()
+    manifest = generate.build_expected_results(cases)
+
+    by_id = {case["case_id"]: case for case in manifest["cases"]}
+    assert manifest["currency"] == "AUD"
+    assert by_id["case-01"]["document_count"] == 4
+    assert by_id["case-01"]["legitimate_deduction"] == "180.00"
+    assert by_id["case-01"]["recoverable_total"] == "0.00"
+    assert by_id["case-02"]["legitimate_deduction"] == "125.00"
+    assert by_id["case-02"]["recoverable_total"] == "175.00"
+    assert by_id["case-03"]["document_count"] == 5
+    assert by_id["case-03"]["recoverable_total"] == "1320.00"
+    assert {
+        item["type"] for item in by_id["case-03"]["discrepancies"]
+    } == {"shrinkage_prohibited", "promo_over_cap"}
+
+    target = tmp_path / "expected-results.json"
+    generate.write_manifest(cases, target)
+    assert json.loads(target.read_text()) == manifest

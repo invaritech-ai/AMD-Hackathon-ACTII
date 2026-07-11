@@ -117,3 +117,81 @@ def validate_cases(cases: list[dict]) -> None:
             )
             if by_reason["shrinkage"] + promo_excess != Decimal("1320.00"):
                 raise ValueError("case-03 recovery does not reconcile")
+
+
+def _identifier_map(case: dict) -> dict[str, str]:
+    identifiers = {
+        "po_number": case["po"]["number"],
+        "invoice_number": case["invoice"]["number"],
+        "delivery_note_number": case["pod"]["number"],
+        "debit_note_number": case["debit_note"]["number"],
+    }
+    if "promo_agreement" in case:
+        identifiers["promo_agreement_number"] = case["promo_agreement"]["number"]
+    return identifiers
+
+
+def _case_expectation(case: dict) -> dict:
+    discrepancies: list[dict[str, str]] = []
+    legitimate = Decimal("0.00")
+    recoverable = Decimal("0.00")
+
+    if case["case_id"] == "case-01":
+        legitimate = money(case["debit_note"]["deductions"][0]["amount"])
+    elif case["case_id"] == "case-02":
+        po_line = case["po"]["line_items"][0]
+        pod_line = case["pod"]["line_items"][0]
+        deduction = case["debit_note"]["deductions"][0]
+        actual_shortage = money(pod_line["dispatched_quantity"]) - money(
+            pod_line["received_quantity"]
+        )
+        legitimate = actual_shortage * money(po_line["unit_price"])
+        recoverable = money(deduction["amount"]) - legitimate
+        discrepancies = [
+            {"type": "shortage_quantity_overstated", "amount": "125.00"},
+            {"type": "deduction_rate_above_po", "amount": "50.00"},
+        ]
+    elif case["case_id"] == "case-03":
+        deductions = {
+            row["reason"].lower(): money(row["amount"])
+            for row in case["debit_note"]["deductions"]
+        }
+        shrinkage = deductions["shrinkage"]
+        promo_excess = deductions["promotional funding"] - money(
+            case["promo_agreement"]["funding_cap"]
+        )
+        recoverable = shrinkage + promo_excess
+        discrepancies = [
+            {"type": "shrinkage_prohibited", "amount": f"{shrinkage:.2f}"},
+            {"type": "promo_over_cap", "amount": f"{promo_excess:.2f}"},
+        ]
+
+    return {
+        "case_id": case["case_id"],
+        "label": case["label"],
+        "supplier": case["supplier"]["name"],
+        "document_count": len(case["outputs"]),
+        "documents": [
+            {"type": kind, "filename": filename}
+            for kind, filename in case["outputs"].items()
+        ],
+        "identifiers": _identifier_map(case),
+        "discrepancies": discrepancies,
+        "legitimate_deduction": f"{legitimate:.2f}",
+        "recoverable_total": f"{recoverable:.2f}",
+    }
+
+
+def build_expected_results(cases: list[dict]) -> dict:
+    validate_cases(cases)
+    return {
+        "currency": "AUD",
+        "expected_case_count": 3,
+        "cases": [_case_expectation(case) for case in cases],
+    }
+
+
+def write_manifest(cases: list[dict], path: Path = MANIFEST_PATH) -> dict:
+    manifest = build_expected_results(cases)
+    path.write_text(json.dumps(manifest, indent=2) + "\n")
+    return manifest
