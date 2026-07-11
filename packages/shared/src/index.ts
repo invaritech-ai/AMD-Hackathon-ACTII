@@ -136,6 +136,25 @@ export interface GraphResponse {
   cases: GraphCase[];
 }
 
+export interface CaseSummary {
+  case_id: string;
+  title: string;
+  status: string;
+  document_count: number;
+  shared_ids: string[];
+}
+
+export interface DocumentSummary {
+  id: string;
+  filename: string;
+  type: DocType;
+  status: string;
+  case_ids: string[];
+  ids: string[];
+  created_at: string;
+  size_bytes: number;
+}
+
 // ── Upload (legacy compat) ──
 
 export interface UploadResponse {
