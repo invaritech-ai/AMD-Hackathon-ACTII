@@ -31,6 +31,10 @@ from claims_recovery.config import settings
 from claims_recovery.models.case_graph import CaseException, Claim, Reconciliation
 from claims_recovery.models.document import Document, DocumentType
 from claims_recovery.services.linker import normalize_id
+from claims_recovery.services.ledger import (
+    add_draft_claim,
+    ensure_claim_is_draft_or_absent,
+)
 from claims_recovery.services.llm import complete
 
 # Verdicts that put money back on the table (counted in the claim total).
@@ -200,6 +204,7 @@ def has_remittance(docs: list[Document]) -> bool:
 
 async def triage_case(session: AsyncSession, case_id: str) -> Reconciliation:
     """Triage every deduction on the case's remittance(s). Persists + returns."""
+    await ensure_claim_is_draft_or_absent(session, case_id)
     docs = (
         await session.execute(select(Document).where(Document.case_id == case_id))
     ).scalars().all()
@@ -273,7 +278,13 @@ async def triage_case(session: AsyncSession, case_id: str) -> Reconciliation:
     if recoverable:
         retailer = "Woolworths"  # ponytail: single retailer in the demo case
         draft = await _draft_letter(supplier, retailer, recoverable, total)
-        session.add(Claim(case_id=case_id, total_amount=total, currency="AUD", draft_text=draft, status="draft"))
+        await add_draft_claim(
+            session,
+            case_id=case_id,
+            total_amount=total,
+            currency="AUD",
+            draft_text=draft,
+        )
 
     await session.commit()
     await session.refresh(recon)

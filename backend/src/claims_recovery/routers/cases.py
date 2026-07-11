@@ -24,6 +24,7 @@ from claims_recovery.schemas.api import (
 )
 from claims_recovery.services.case_graph_service import rebuild_case_graph
 from claims_recovery.services.linker import build_graph
+from claims_recovery.services.ledger import LedgerConflict
 from claims_recovery.services.reconciliation import reconcile_case
 from claims_recovery.services.triage import has_remittance, triage_case
 
@@ -200,10 +201,13 @@ async def run_reconciliation(
     docs = (
         await session.execute(select(Document).where(Document.case_id == case_id))
     ).scalars().all()
-    if has_remittance(docs):
-        await triage_case(session, case_id)
-    else:
-        await reconcile_case(session, case_id)
+    try:
+        if has_remittance(docs):
+            await triage_case(session, case_id)
+        else:
+            await reconcile_case(session, case_id)
+    except LedgerConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     return await _recon_response(session, case_id)
 
 

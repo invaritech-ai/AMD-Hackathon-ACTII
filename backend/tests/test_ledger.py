@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
+import json
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from claims_recovery.models.case_graph import (
     Case,
@@ -13,6 +14,7 @@ from claims_recovery.models.case_graph import (
     ClaimStatusEvent,
     Reconciliation,
 )
+from claims_recovery.models.document import Document, DocumentType
 
 
 @pytest.mark.asyncio
@@ -285,3 +287,109 @@ async def test_terminal_claim_cannot_transition(client, session):
     )
 
     assert response.status_code == 409
+
+
+def _recon_document(
+    case_id: str, filename: str, document_type: DocumentType, fields: dict
+) -> Document:
+    return Document(
+        filename=filename,
+        original_filename=filename,
+        file_path=f"/tmp/{filename}",
+        type=document_type,
+        status="classified",
+        case_id=case_id,
+        extracted_json=json.dumps(fields),
+    )
+
+
+@pytest.mark.asyncio
+async def test_reconciliation_creates_initial_draft_history(client, session):
+    case = Case(title="Reconciliation Case")
+    session.add(case)
+    await session.flush()
+    invoice = _recon_document(
+        case.id,
+        "invoice.md",
+        DocumentType.INVOICE,
+        {
+            "ids": {"invoice_number": "INV-1", "po_number": "PO-1"},
+            "currency": "AUD",
+            "line_items": [
+                {
+                    "description": "Widget",
+                    "quantity": 2,
+                    "unit_price": 10,
+                    "line_total": 20,
+                }
+            ],
+            "subtotal": 20,
+            "tax": 0,
+            "total": 20,
+        },
+    )
+    purchase_order = _recon_document(
+        case.id,
+        "po.md",
+        DocumentType.PURCHASE_ORDER,
+        {
+            "ids": {"po_number": "PO-1"},
+            "line_items": [
+                {
+                    "description": "Widget",
+                    "quantity": 2,
+                    "unit_price": 8,
+                    "line_total": 16,
+                }
+            ],
+        },
+    )
+    session.add_all([invoice, purchase_order])
+    await session.commit()
+
+    response = await client.post(f"/api/v1/cases/{case.id}/reconcile")
+
+    assert response.status_code == 200
+    claim = (
+        await session.execute(select(Claim).where(Claim.case_id == case.id))
+    ).scalar_one()
+    events = (
+        await session.execute(
+            select(ClaimStatusEvent).where(ClaimStatusEvent.claim_id == claim.id)
+        )
+    ).scalars().all()
+    assert [(event.from_status, event.to_status) for event in events] == [
+        (None, "draft")
+    ]
+
+
+@pytest.mark.asyncio
+async def test_submitted_claim_blocks_reconciliation_without_data_loss(client, session):
+    case = Case(title="Locked Case")
+    session.add(case)
+    await session.flush()
+    claim = Claim(
+        case_id=case.id,
+        total_amount=Decimal("2352.00"),
+        recovered_amount=Decimal("0.00"),
+        currency="AUD",
+        status="submitted",
+    )
+    reconciliation = Reconciliation(
+        case_id=case.id,
+        status="exceptions_found",
+        summary="Existing result",
+    )
+    session.add_all([claim, reconciliation])
+    await session.commit()
+
+    response = await client.post(f"/api/v1/cases/{case.id}/reconcile")
+
+    assert response.status_code == 409
+    assert await session.get(Claim, claim.id) is not None
+    assert await session.get(Reconciliation, reconciliation.id) is not None
+    assert (
+        await session.execute(
+            select(func.count(Claim.id)).where(Claim.case_id == case.id)
+        )
+    ).scalar_one() == 1

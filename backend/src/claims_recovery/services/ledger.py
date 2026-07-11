@@ -42,6 +42,47 @@ class LedgerConflict(Exception):
     pass
 
 
+async def ensure_claim_is_draft_or_absent(
+    session: AsyncSession, case_id: str
+) -> None:
+    claim = (
+        await session.execute(
+            select(Claim).where(Claim.case_id == case_id).with_for_update()
+        )
+    ).scalar_one_or_none()
+    if claim is not None and claim.status != "draft":
+        raise LedgerConflict("Claim is locked after submission")
+
+
+async def add_draft_claim(
+    session: AsyncSession,
+    *,
+    case_id: str,
+    total_amount: Decimal,
+    currency: str | None,
+    draft_text: str,
+) -> Claim:
+    claim = Claim(
+        case_id=case_id,
+        total_amount=total_amount,
+        recovered_amount=Decimal("0"),
+        currency=currency,
+        draft_text=draft_text,
+        status="draft",
+    )
+    session.add(claim)
+    await session.flush()
+    session.add(
+        ClaimStatusEvent(
+            claim_id=claim.id,
+            from_status=None,
+            to_status="draft",
+            recovered_amount=Decimal("0"),
+        )
+    )
+    return claim
+
+
 async def get_case_ledger_row(
     session: AsyncSession, claim: Claim, case: Case
 ) -> LedgerCaseResponse:

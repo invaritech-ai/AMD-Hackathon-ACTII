@@ -27,6 +27,10 @@ from claims_recovery.config import settings
 from claims_recovery.models.case_graph import Case, CaseException, Claim, Reconciliation
 from claims_recovery.models.document import Document, DocumentType
 from claims_recovery.services.llm import complete
+from claims_recovery.services.ledger import (
+    add_draft_claim,
+    ensure_claim_is_draft_or_absent,
+)
 from claims_recovery.services.verifier import _close, verify_arithmetic
 
 # check_type -> severity for the exceptions we raise.
@@ -172,6 +176,7 @@ async def reconcile_case(session: AsyncSession, case_id: str) -> Reconciliation:
     Idempotent per case: clears prior reconciliations/exceptions/claims for the
     case first, so re-running after a re-upload or attach/detach is clean.
     """
+    await ensure_claim_is_draft_or_absent(session, case_id)
     docs = (
         await session.execute(select(Document).where(Document.case_id == case_id))
     ).scalars().all()
@@ -228,10 +233,13 @@ async def reconcile_case(session: AsyncSession, case_id: str) -> Reconciliation:
         currency = next((e["currency"] for e in recoverable if e["currency"]), None)
         supplier = next((f.get("supplier_name") for f in inv_fields if f.get("supplier_name")), "")
         draft = await _draft_claim_letter(supplier, recoverable, total, currency or "")
-        session.add(Claim(
-            case_id=case_id, total_amount=total, currency=currency,
-            draft_text=draft, status="draft",
-        ))
+        await add_draft_claim(
+            session,
+            case_id=case_id,
+            total_amount=total,
+            currency=currency,
+            draft_text=draft,
+        )
 
     await session.commit()
     await session.refresh(recon)
