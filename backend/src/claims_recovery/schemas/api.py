@@ -7,7 +7,6 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from claims_recovery.models.document import DocumentType
-from claims_recovery.models.discrepancy import ClaimStatus, DiscrepancyType, Severity
 
 
 # ── Document ──────────────────────────────────────────
@@ -143,67 +142,3 @@ class InvoiceResponse(BaseModel):
 
     model_config = {"from_attributes": True}
 
-
-# ── Run ───────────────────────────────────────────────
-
-class RunCreateRequest(BaseModel):
-    document_ids: list[str]
-
-
-class RunResponse(BaseModel):
-    id: str
-    status: str
-    progress_pct: float = 0.0
-    total_discrepancies: int | None = None
-    total_claim_value: float | None = None
-    agents: dict[str, Any] = Field(default_factory=dict)
-    discrepancies: list[dict[str, Any]] = Field(default_factory=list)
-    claims: list[dict[str, Any]] = Field(default_factory=list)
-    created_at: datetime | None = None
-
-    model_config = {"from_attributes": True}
-
-
-# ── Discrepancy ───────────────────────────────────────
-
-class DiscrepancyResponse(BaseModel):
-    invoice_number: str
-    po_number: str | None = None
-    item_description: str
-    expected_quantity: float | None = None
-    actual_quantity: float | None = None
-    expected_unit_price: float | None = None
-    actual_unit_price: float | None = None
-    difference_amount: float
-    discrepancy_type: DiscrepancyType
-    severity: Severity
-    explanation: str | None = None
-
-    model_config = {"from_attributes": True}
-
-
-# ── Claim ─────────────────────────────────────────────
-
-class ClaimResponse(BaseModel):
-    invoice_number: str
-    po_number: str | None = None
-    total_claim_amount: float
-    draft_text: str | None = None
-    status: str
-
-    model_config = {"from_attributes": True}
-
-
-# ── Ledger ────────────────────────────────────────────
-
-class LedgerEntry(BaseModel):
-    supplier_name: str
-    total_discrepancies: int
-    total_claim_value: float
-    claims_count: int
-
-
-class LedgerResponse(BaseModel):
-    total_claims: int
-    total_claim_value: float
-    by_supplier: list[LedgerEntry]

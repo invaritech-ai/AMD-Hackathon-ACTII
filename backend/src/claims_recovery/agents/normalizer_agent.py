@@ -1,14 +1,13 @@
-"""Agent 1 — structured field extraction from a document's Markdown.
+"""Normalizer subagent — structures clean Markdown into fields.
 
-The LLM reads the extracted Markdown and emits structured JSON: the document's
-identifiers (its own + any it references), supplier, line items, and the
-subtotal/tax/total *as printed*. It never computes — deterministic tools
-downstream verify the arithmetic (slice 2) and link the ids into cases
-(slice 3). When no LLM is reachable we degrade to a regex best-effort rather
+The last subagent of the ingestion agent (see `document_service.run_pipeline`),
+after the classifier and OCR subagents. The LLM reads the (native or
+OCR-cleaned) Markdown and emits structured JSON: the document's identifiers (its
+own + any it references), supplier, line items, remittance `claims`, promo
+terms, and subtotal/tax/total *as printed*. It never computes — deterministic
+tools downstream verify the arithmetic (`verifier`) and link the ids into cases
+(`linker`). When no LLM is reachable we degrade to a regex best-effort rather
 than raising, so the pipeline still runs keyless.
-
-(Kept under the old filename to avoid churn; a rename belongs with the wider
-agent rework.)
 """
 
 from __future__ import annotations

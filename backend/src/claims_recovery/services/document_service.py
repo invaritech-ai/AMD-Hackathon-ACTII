@@ -6,7 +6,7 @@ from pathlib import Path
 from anyio import to_thread
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from claims_recovery.agents.agent1_ocr_extractor import extract_fields
+from claims_recovery.agents.normalizer_agent import extract_fields
 from claims_recovery.models.document import Document, DocumentType
 from claims_recovery.models.invoice import Invoice, LineItem
 from claims_recovery.services import vision_ocr
@@ -33,7 +33,13 @@ async def process_document_by_id(session: AsyncSession, document_id: str) -> Non
 
 
 async def run_pipeline(session: AsyncSession, document: Document) -> Document:
-    """Classify -> (gate) -> OCR -> extract -> verify on a persisted document row.
+    """The ingestion agent: orchestrates three subagents over one document.
+
+      classifier subagent  (services/classifier + vision_ocr.classify) — the gate
+      OCR subagent         (vision_ocr.transcribe) — scans only
+      normalizer subagent  (agents/normalizer_agent.extract_fields)
+
+    Flow: classify -> (gate) -> OCR -> normalize -> verify on a persisted row.
 
     Runs on the procrastinate worker; the upload handler owns row creation so the
     response returns before this heavy work finishes. `document.status` advances

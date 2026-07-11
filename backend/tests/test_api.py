@@ -86,71 +86,9 @@ async def test_pipeline_failure_marks_document_failed(session, monkeypatch):
     assert doc.status == "failed"
 
 
-@pytest.mark.asyncio
-async def test_ledger_empty(client: AsyncClient):
-    resp = await client.get("/api/v1/ledger")
-    assert resp.status_code == 200
-    data = resp.json()
-    assert data["total_claims"] == 0
-    assert data["by_supplier"] == []
-
-
-@pytest.mark.asyncio
-async def test_create_run_invalid_id(client: AsyncClient):
-    resp = await client.post(
-        "/api/v1/runs",
-        json={"document_ids": ["nonexistent"]},
-    )
-    assert resp.status_code == 200
-
-
-@pytest.mark.asyncio
-async def test_get_nonexistent_run(client: AsyncClient):
-    resp = await client.get("/api/v1/runs/nonexistent")
-    assert resp.status_code == 404
-
-
-@pytest.mark.asyncio
-async def test_full_upload_and_run(client: AsyncClient, session):
-    pdfs = list(INVOICE_DIR.glob("*.pdf"))
-    if not pdfs:
-        pytest.skip("No invoice PDFs available")
-
-    # Upload, then run the pipeline as the worker would so an invoice exists.
-    with open(pdfs[0], "rb") as f:
-        upload_resp = await client.post(
-            "/api/v1/documents/upload",
-            files={"file": (pdfs[0].name, f, "application/pdf")},
-        )
-    assert upload_resp.status_code == 200
-    doc_id = upload_resp.json()["document_id"]
-
-    from claims_recovery.services.document_service import process_document_by_id
-
-    await process_document_by_id(session, doc_id)
-
-    # Create run (may fail if no Fireworks key, but should return a response)
-    run_resp = await client.post(
-        "/api/v1/runs",
-        json={"document_ids": [doc_id]},
-    )
-    assert run_resp.status_code == 200
-    run_data = run_resp.json()
-    assert run_data["id"]
-    assert run_data["status"] in ("completed", "failed", "running")
-
-    # Get run status
-    status_resp = await client.get(f"/api/v1/runs/{run_data['id']}")
-    assert status_resp.status_code == 200
-
-    # Check ledger updated
-    ledger_resp = await client.get("/api/v1/ledger")
-    assert ledger_resp.status_code == 200
-
-
 def test_ocr_extractor_regex_fallback():
     # The keyless degrade path (no LLM) — deterministic, no network.
-    from claims_recovery.agents.agent1_ocr_extractor import _regex_fields
+    from claims_recovery.agents.normalizer_agent import _regex_fields
 
     text = """INVOICE
 Invaritech Limited
@@ -167,47 +105,6 @@ Total: $12,450.00"""
     assert data["supplier_name"] == "Invaritech Limited"
     assert data["total"] == 12450.00
     assert len(data["line_items"]) == 2
-
-
-@pytest.mark.asyncio
-async def test_discrepancy_aggregator():
-    from claims_recovery.agents.agent4_discrepancy_aggregator import aggregate_discrepancies
-
-    po_matches = []
-    contract_results = [
-        {
-            "discrepancy": {
-                "type": "OVERCHARGE",
-                "item": "Beef Chuck Roll (kg)",
-                "contracted_price": 12.00,
-                "invoice_price": 12.50,
-                "total_impact": 250.00,
-            }
-        }
-    ]
-
-    result = aggregate_discrepancies(po_matches, contract_results)
-    assert result["total_discrepancies"] == 1
-    assert result["total_claim_value"] == 250.00
-    assert result["by_type"]["OVERCHARGE"] == 1
-
-
-@pytest.mark.asyncio
-async def test_tools_find_matching_po():
-    from claims_recovery.agents.tools import find_matching_po
-
-    result = await find_matching_po("FreshSupply Co")
-    assert "error" not in result
-    assert result["matched_supplier"] == "FreshSupply Co"
-
-
-@pytest.mark.asyncio
-async def test_tools_lookup_contract():
-    from claims_recovery.agents.tools import lookup_contract_price
-
-    result = await lookup_contract_price("FreshSupply Co", "Beef Chuck Roll")
-    assert "error" not in result
-    assert result["contracted_price"] == 12.00
 
 
 def _seed_doc(original, dtype, ids):

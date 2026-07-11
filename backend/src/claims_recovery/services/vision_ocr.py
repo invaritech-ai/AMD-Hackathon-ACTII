@@ -1,13 +1,15 @@
-"""Vision-LLM OCR + classification for scans and images.
+"""Vision subagents of the ingestion agent — for scans and images.
 
 Two jobs, both cheap-first:
 
-* ``classify`` — one low-cost vision call that labels a scan (invoice / PO /
-  contract / delivery_docket / other) BEFORE any transcription, so junk never
-  burns the expensive OCR pass.
-* ``transcribe`` — the vision model (Kimi K2.7) reads the page to Markdown, then
-  a cheap text model (gpt-oss) strips Kimi's chain-of-thought to the final clean
-  Markdown. Kimi reasons and often truncates, so this second pass is required.
+* ``classify`` — the classifier subagent's vision path: one low-cost vision call
+  that labels a scan (invoice / PO / contract / delivery_docket /
+  remittance_advice / promo_agreement / other) BEFORE any transcription, so junk
+  never burns the expensive OCR pass.
+* ``transcribe`` — the OCR subagent: the vision model (Kimi K2.7) reads the page
+  to Markdown, then the cleanup step (a cheap text model, gpt-oss) strips Kimi's
+  chain-of-thought to the final clean Markdown. Kimi reasons and often truncates,
+  so this second pass is required.
 
 Sync on purpose: called from the worker's off-thread extraction path.
 """

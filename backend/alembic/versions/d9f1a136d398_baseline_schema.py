@@ -1,8 +1,8 @@
 """baseline schema
 
-Revision ID: 0f98fdabb0a7
+Revision ID: d9f1a136d398
 Revises: 
-Create Date: 2026-07-11 15:14:28.718810
+Create Date: 2026-07-11 17:09:37.792913
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '0f98fdabb0a7'
+revision: str = 'd9f1a136d398'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -25,22 +25,6 @@ def upgrade() -> None:
     sa.Column('title', sa.String(length=256), nullable=True),
     sa.Column('description', sa.Text(), nullable=True),
     sa.Column('status', sa.String(length=32), nullable=False),
-    sa.Column('id', sa.String(), nullable=False),
-    sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-    sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_table('pipeline_runs',
-    sa.Column('status', sa.Enum('PENDING', 'RUNNING', 'COMPLETED', 'FAILED', name='runstatus'), nullable=False),
-    sa.Column('document_ids', sa.Text(), nullable=False),
-    sa.Column('agent1_ocr', sa.Text(), nullable=True),
-    sa.Column('agent2_po_match', sa.Text(), nullable=True),
-    sa.Column('agent3_contract', sa.Text(), nullable=True),
-    sa.Column('agent4_aggregate', sa.Text(), nullable=True),
-    sa.Column('agent5_claims', sa.Text(), nullable=True),
-    sa.Column('total_discrepancies', sa.Integer(), nullable=True),
-    sa.Column('total_claim_value', sa.Float(), nullable=True),
-    sa.Column('error_message', sa.Text(), nullable=True),
     sa.Column('id', sa.String(), nullable=False),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
@@ -167,30 +151,6 @@ def upgrade() -> None:
     sa.UniqueConstraint('document_id')
     )
     op.create_index(op.f('ix_invoices_invoice_number'), 'invoices', ['invoice_number'], unique=False)
-    op.create_table('discrepancies',
-    sa.Column('run_id', sa.String(length=8), nullable=False),
-    sa.Column('invoice_id', sa.String(length=8), nullable=False),
-    sa.Column('invoice_number', sa.String(length=64), nullable=False),
-    sa.Column('po_number', sa.String(length=64), nullable=True),
-    sa.Column('item_description', sa.Text(), nullable=False),
-    sa.Column('expected_quantity', sa.Float(), nullable=True),
-    sa.Column('actual_quantity', sa.Float(), nullable=True),
-    sa.Column('expected_unit_price', sa.Float(), nullable=True),
-    sa.Column('actual_unit_price', sa.Float(), nullable=True),
-    sa.Column('difference_amount', sa.Float(), nullable=False),
-    sa.Column('discrepancy_type', sa.Enum('PRICE_MISMATCH', 'QTY_MISMATCH', 'UNAUTHORIZED_CHARGE', 'DUPLICATE', 'OVERCHARGE', 'UNDERCHARGE', name='discrepancytype'), nullable=False),
-    sa.Column('severity', sa.Enum('LOW', 'MEDIUM', 'HIGH', name='severity'), nullable=False),
-    sa.Column('explanation', sa.Text(), nullable=True),
-    sa.Column('status', sa.Enum('OPEN', 'DRAFTING_CLAIM', 'CLAIM_SUBMITTED', 'RESOLVED', name='claimstatus'), nullable=False),
-    sa.Column('id', sa.String(), nullable=False),
-    sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-    sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-    sa.ForeignKeyConstraint(['invoice_id'], ['invoices.id'], ),
-    sa.ForeignKeyConstraint(['run_id'], ['pipeline_runs.id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_discrepancies_invoice_id'), 'discrepancies', ['invoice_id'], unique=False)
-    op.create_index(op.f('ix_discrepancies_run_id'), 'discrepancies', ['run_id'], unique=False)
     op.create_table('line_items',
     sa.Column('invoice_id', sa.String(length=8), nullable=False),
     sa.Column('description', sa.Text(), nullable=False),
@@ -205,37 +165,14 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_line_items_invoice_id'), 'line_items', ['invoice_id'], unique=False)
-    op.create_table('recovery_claims',
-    sa.Column('run_id', sa.String(length=8), nullable=False),
-    sa.Column('invoice_id', sa.String(length=8), nullable=False),
-    sa.Column('invoice_number', sa.String(length=64), nullable=False),
-    sa.Column('po_number', sa.String(length=64), nullable=True),
-    sa.Column('total_claim_amount', sa.Float(), nullable=False),
-    sa.Column('draft_text', sa.Text(), nullable=True),
-    sa.Column('status', sa.String(length=32), nullable=False),
-    sa.Column('id', sa.String(), nullable=False),
-    sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-    sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-    sa.ForeignKeyConstraint(['invoice_id'], ['invoices.id'], ),
-    sa.ForeignKeyConstraint(['run_id'], ['pipeline_runs.id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_recovery_claims_invoice_id'), 'recovery_claims', ['invoice_id'], unique=False)
-    op.create_index(op.f('ix_recovery_claims_run_id'), 'recovery_claims', ['run_id'], unique=False)
     # ### end Alembic commands ###
 
 
 def downgrade() -> None:
     """Downgrade schema."""
     # ### commands auto generated by Alembic - please adjust! ###
-    op.drop_index(op.f('ix_recovery_claims_run_id'), table_name='recovery_claims')
-    op.drop_index(op.f('ix_recovery_claims_invoice_id'), table_name='recovery_claims')
-    op.drop_table('recovery_claims')
     op.drop_index(op.f('ix_line_items_invoice_id'), table_name='line_items')
     op.drop_table('line_items')
-    op.drop_index(op.f('ix_discrepancies_run_id'), table_name='discrepancies')
-    op.drop_index(op.f('ix_discrepancies_invoice_id'), table_name='discrepancies')
-    op.drop_table('discrepancies')
     op.drop_index(op.f('ix_invoices_invoice_number'), table_name='invoices')
     op.drop_table('invoices')
     op.drop_index(op.f('ix_exceptions_case_id'), table_name='exceptions')
@@ -253,6 +190,5 @@ def downgrade() -> None:
     op.drop_table('documents')
     op.drop_index(op.f('ix_claims_case_id'), table_name='claims')
     op.drop_table('claims')
-    op.drop_table('pipeline_runs')
     op.drop_table('cases')
     # ### end Alembic commands ###

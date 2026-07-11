@@ -1,4 +1,6 @@
-"""Classify a document into a DocumentType. Keyword-first, LLM fallback.
+"""Classifier subagent (of the ingestion agent) — document -> DocumentType.
+
+Keyword-first, LLM fallback.
 
 The keyword pass is free and settles the obvious cases (an invoice says
 "invoice"). Only when it can't decide (UNKNOWN) do we spend one tiny LLM call

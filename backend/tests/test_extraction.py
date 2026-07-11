@@ -4,7 +4,7 @@ The LLM call itself isn't unit-testable offline; these cover the parsing and
 coercion that turn a model's messy reply into the fixed downstream shape.
 """
 
-from claims_recovery.agents.agent1_ocr_extractor import _normalize, _num, _parse_json
+from claims_recovery.agents.normalizer_agent import _normalize, _num, _parse_json
 
 
 def test_parse_json_strips_fences_and_prose():

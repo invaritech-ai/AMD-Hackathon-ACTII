@@ -35,11 +35,6 @@ class Settings(BaseSettings):
     # (screenshots, random photos) never burns a transcription. See vision_ocr.py.
     model_vision_classifier: str = "fireworks:accounts/fireworks/models/qwen3p7-plus"
 
-    # Fireworks model assignments per agent
-    model_po_matcher: str = "accounts/fireworks/models/llama-v3p1-70b-instruct"
-    model_contract_validator: str = "accounts/fireworks/models/deepseek-r1"
-    model_claim_drafter: str = "accounts/fireworks/models/llama-v3p1-70b-instruct"
-
     @property
     def procrastinate_dsn(self) -> str:
         # procrastinate speaks psycopg3; drop SQLAlchemy's async driver suffix.
