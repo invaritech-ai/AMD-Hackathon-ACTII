@@ -1,28 +1,28 @@
 import { PageContainer } from "@/components/PageContainer";
 import { PageHeader } from "@/components/PageHeader";
 import { UploadPanel } from "@/components/UploadPanel";
-import { Badge, Card, CardContent } from "@claims/ui";
 
 export function UploadRoute() {
   return (
     <PageContainer>
       <PageHeader
-        title="Document Processing"
-        label="Pipeline"
+        title="Bring evidence into review"
+        label="Document intake"
         labelColor="bg-[var(--color-primary)]"
-        description="Upload invoices, purchase orders, and contracts. The system cross-references documents against agreements to detect discrepancies and generate recovery claims."
+        description="Start a case-ready processing run with the invoices, purchase orders, contracts, and delivery evidence that matter."
       />
-      <Card className="mb-6 rounded-xl">
-        <CardContent className="flex flex-col gap-3 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-label">Persistent queue</p>
-            <p className="mt-1 text-sm text-[var(--color-foreground-subtle)]">
-              Picker selections clear after submission, while the processing queue stays visible across route changes.
-            </p>
-          </div>
-          <Badge variant="info">Live upload feedback</Badge>
-        </CardContent>
-      </Card>
+      <section className="mb-7 flex flex-col gap-3 border-y border-[var(--color-border)] py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-label">Pipeline status</p>
+          <p className="mt-1 text-[13px] text-[var(--color-foreground-muted)]">
+            Every submitted file remains traceable through validation, extraction, and case review.
+          </p>
+        </div>
+        <div className="inline-flex items-center gap-2 self-start rounded-md border border-[rgb(43_203_136_/_0.28)] bg-[rgb(43_203_136_/_0.08)] px-2.5 py-1.5 text-[11px] font-semibold tracking-[0.04em] text-[var(--color-success)] sm:self-auto">
+          <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-success)]" />
+          Intake ready
+        </div>
+      </section>
       <UploadPanel />
     </PageContainer>
   );

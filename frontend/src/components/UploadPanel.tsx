@@ -58,91 +58,125 @@ export function UploadPanel() {
 
   if (runId) {
     return (
-      <Card className="rounded-xl">
-        <CardContent className="py-8">
-          <PipelineStepper runId={runId} />
-        </CardContent>
-      </Card>
+      <div className="space-y-5">
+        <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-4">
+          <div>
+            <p className="text-label">Processing run</p>
+            <p className="mt-1 text-[13px] text-[var(--color-foreground-muted)]">
+              The evidence batch is moving through the recovery pipeline.
+            </p>
+          </div>
+          <Badge variant="info">Live</Badge>
+        </div>
+        <Card>
+          <CardContent className="py-7">
+            <PipelineStepper runId={runId} />
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <Card
-        className={cn(
-          "overflow-hidden rounded-xl border-dashed transition-all duration-200",
-          dragOver
-            ? "border-[var(--color-primary)] bg-[rgb(245_158_11_/_0.05)] shadow-[0_0_0_1px_rgb(245_158_11_/_0.18)]"
-            : "border-[var(--color-border)] hover:border-[var(--color-primary)]"
-        )}
-      >
-        <CardContent
-          role="button"
-          tabIndex={0}
+    <div className="space-y-5">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_19rem]">
+        <Card
+          className={cn(
+            "overflow-hidden border-dashed transition-[background-color,border-color,box-shadow] duration-[var(--duration-interaction)] ease-[var(--ease-emphasized)]",
+            dragOver
+              ? "border-[var(--color-primary)] bg-[rgb(246_166_35_/_0.06)] shadow-[0_0_0_1px_rgb(246_166_35_/_0.2)]"
+              : "hover:border-[var(--color-border-light)]"
+          )}
+        >
+          <CardContent
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
           onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files); }}
-          onClick={openFilePicker}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              openFilePicker();
-            }
-          }}
-          aria-label="Select documents to upload"
-          className="relative flex min-h-[320px] w-full cursor-pointer flex-col items-center justify-center px-8 py-20 text-center"
-        >
-          <div
-          className={cn(
-            "relative flex h-20 w-20 items-center justify-center rounded-full border mb-6 transition-all duration-200",
-            dragOver
-              ? "border-[var(--color-primary)] bg-[rgb(245_158_11_/_0.1)] scale-110"
-              : "border-[var(--color-border)] bg-[var(--color-surface)]"
-          )}
-        >
-          <Upload
-            className={cn(
-              "h-8 w-8 transition-all duration-200",
-              dragOver
-                ? "text-[var(--color-primary)]"
-                : "text-[var(--color-foreground-subtle)]"
-            )}
-          />
-        </div>
-          <p className="text-sm font-medium text-[var(--color-foreground)]">
-            Drag and drop invoice PDFs here
-          </p>
-          <p className="mt-1 text-xs font-[var(--font-mono)] text-[var(--color-foreground-subtle)]">
-            or click to browse — PDF, image, or spreadsheet
-          </p>
-          <div className="mt-5 flex flex-wrap justify-center gap-2">
-            <Badge variant="neutral">PDF</Badge>
-            <Badge variant="neutral">Word</Badge>
-            <Badge variant="neutral">Spreadsheet</Badge>
-            <Badge variant="neutral">CSV</Badge>
-            <Badge variant="neutral">Images</Badge>
-          </div>
-          <input
-            ref={inputRef}
-            type="file"
-            accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.jpg,.jpeg,.png,.tiff,.tif"
-            multiple
-            className="hidden"
-            onChange={(e) => e.target.files && handleFiles(e.target.files)}
-          />
-        </CardContent>
-      </Card>
+            className="relative flex min-h-[344px] w-full flex-col items-center justify-center px-6 py-10 text-center sm:px-10"
+          >
+            <div
+              className={cn(
+                "relative mb-5 flex h-14 w-14 items-center justify-center rounded-xl border transition-[background-color,border-color,transform] duration-[var(--duration-interaction)] ease-[var(--ease-emphasized)]",
+                dragOver
+                  ? "scale-105 border-[var(--color-primary)] bg-[rgb(246_166_35_/_0.12)]"
+                  : "border-[var(--color-border)] bg-[var(--color-surface-raised)]"
+              )}
+            >
+              <Upload
+                className={cn(
+                  "h-6 w-6 transition-colors duration-[var(--duration-interaction)]",
+                  dragOver
+                    ? "text-[var(--color-primary)]"
+                    : "text-[var(--color-foreground-muted)]"
+                )}
+              />
+            </div>
+            <p className="text-label">Secure evidence intake</p>
+            <h2 className="mt-2 text-lg font-semibold tracking-[-0.015em] text-[var(--color-foreground)]">
+              Drop documents here, or choose files
+            </h2>
+            <p className="mt-2 max-w-md text-[13px] leading-5 text-[var(--color-foreground-muted)]">
+              Files are validated first, then passed to the recovery agents for extraction and classification.
+            </p>
+            <Button type="button" variant="secondary" className="mt-5" onClick={openFilePicker}>
+              Choose files
+            </Button>
+            <div className="mt-5 flex flex-wrap justify-center gap-1.5">
+              <Badge variant="neutral">PDF</Badge>
+              <Badge variant="neutral">Spreadsheets</Badge>
+              <Badge variant="neutral">Documents</Badge>
+              <Badge variant="neutral">Images</Badge>
+            </div>
+            <input
+              ref={inputRef}
+              type="file"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.jpg,.jpeg,.png,.tiff,.tif"
+              multiple
+              className="hidden"
+              onChange={(e) => e.target.files && handleFiles(e.target.files)}
+            />
+          </CardContent>
+        </Card>
+
+        <Card className="bg-[var(--color-surface-raised)]">
+          <CardContent className="flex h-full flex-col p-5">
+            <p className="text-label">What happens next</p>
+            <div className="mt-5 space-y-5">
+              {[
+                ["01", "Validate", "Check file type and prepare each document for extraction."],
+                ["02", "Extract", "Read key evidence from invoices, orders, and agreements."],
+                ["03", "Connect", "Make the evidence available to case and graph review."],
+              ].map(([number, title, description]) => (
+                <div key={number} className="flex gap-3">
+                  <span className="mt-0.5 font-[var(--font-mono)] text-[11px] font-semibold text-[var(--color-primary)]">
+                    {number}
+                  </span>
+                  <div>
+                    <p className="text-[13px] font-semibold text-[var(--color-foreground)]">{title}</p>
+                    <p className="mt-1 text-[12px] leading-5 text-[var(--color-foreground-muted)]">{description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-auto border-t border-[var(--color-border)] pt-4">
+              <p className="text-[11px] leading-4 text-[var(--color-foreground-subtle)]">
+                Supported: PDF, Office documents, CSV, spreadsheets, and common image formats.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {upload.isPending && pendingUploadCount !== null && (
-        <Card className="rounded-xl border-[var(--color-border)] shadow-none">
-          <CardContent className="flex items-center gap-3 p-4">
-            <Spinner className="h-4 w-4" />
+        <Card className="border-[rgb(68_196_224_/_0.28)] bg-[rgb(68_196_224_/_0.06)] shadow-none">
+          <CardContent className="flex items-center gap-3 p-4" aria-live="polite">
+            <Spinner className="h-4 w-4 text-[#67D6F2]" />
             <div>
-              <p className="text-sm font-medium text-[var(--color-foreground)]">
+              <p className="text-[13px] font-semibold text-[var(--color-foreground)]">
                 Uploading {pendingUploadCount} file{pendingUploadCount === 1 ? "" : "s"}
               </p>
-              <p className="mt-0.5 text-xs text-[var(--color-foreground-subtle)]">
-                Picker selections clear immediately while upload mutation runs.
+              <p className="mt-0.5 text-[12px] text-[var(--color-foreground-muted)]">
+                The processing run will appear here as soon as the upload is accepted.
               </p>
             </div>
           </CardContent>
@@ -150,16 +184,14 @@ export function UploadPanel() {
       )}
 
       {uploadErrorMessage && (
-        <Card className="rounded-xl border-[rgb(239_68_68_/_0.25)] bg-[rgb(239_68_68_/_0.08)] shadow-none">
+        <Card className="border-[rgb(241_100_100_/_0.3)] bg-[rgb(241_100_100_/_0.08)] shadow-none">
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
               <Badge variant="high">Upload error</Badge>
-              <span className="text-[10px] font-[var(--font-mono)] text-[var(--color-destructive)]">
-                Retry required
-              </span>
+              <span className="text-[11px] text-[var(--color-destructive)]">Action required</span>
             </div>
             <p
-              className="mt-2 text-xs font-[var(--font-mono)] text-[var(--color-destructive)]"
+              className="mt-2 text-[12px] leading-5 text-[var(--color-destructive)]"
               aria-label={`Upload error ${uploadErrorMessage}`}
             >
               {uploadErrorMessage}
@@ -169,35 +201,35 @@ export function UploadPanel() {
       )}
 
       {files.length > 0 && (
-        <Card className="overflow-hidden rounded-xl">
-          <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3">
+        <Card className="overflow-hidden">
+          <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">
             <div>
-              <p className="text-label">Upload batch</p>
-              <p className="mt-0.5 text-sm font-medium text-[var(--color-foreground)]">
-                {files.length} file{files.length === 1 ? "" : "s"} ready for preprocessing
+              <p className="text-label">Ready to submit</p>
+              <p className="mt-1 text-[13px] font-semibold text-[var(--color-foreground)]">
+                {files.length} file{files.length === 1 ? "" : "s"} prepared for processing
               </p>
             </div>
             <Badge variant="neutral">{files.length}</Badge>
           </div>
 
           <ScrollArea className="max-h-72">
-            <div className="space-y-3 p-4">
+            <div className="space-y-2 p-3">
               {files.map((file, i) => (
                 <Card
                   key={`${file.name}-${file.size}-${i}`}
-                  className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] shadow-none"
+                  className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-raised)] shadow-none"
                 >
-                  <CardContent className="flex items-center gap-4 p-4">
-                    <FileText className="h-4 w-4 shrink-0 text-[var(--color-foreground-subtle)]" />
+                  <CardContent className="flex items-center gap-3 p-3">
+                    <FileText className="h-4 w-4 shrink-0 text-[var(--color-foreground-muted)]" />
                     <div className="min-w-0 flex-1">
                       <p
-                        className="truncate text-sm text-[var(--color-foreground)]"
+                        className="truncate text-[13px] font-medium text-[var(--color-foreground)]"
                         aria-label={`File name ${file.name}`}
                       >
                         {file.name}
                       </p>
-                      <p className="mt-1 text-[11px] font-[var(--font-mono)] text-[var(--color-foreground-subtle)]">
-                        {(file.size / 1024).toFixed(0)}KB
+                      <p className="mt-0.5 text-[11px] text-[var(--color-foreground-subtle)]">
+                        {(file.size / 1024).toFixed(0)} KB
                       </p>
                     </div>
                     <Button
@@ -219,7 +251,7 @@ export function UploadPanel() {
             </div>
           </ScrollArea>
 
-          <CardContent className="space-y-4 border-t border-[var(--color-border)] pt-4">
+          <CardContent className="border-t border-[var(--color-border)] pt-4">
             <Button
               onClick={handleUpload}
               disabled={upload.isPending}
@@ -238,10 +270,9 @@ export function UploadPanel() {
                   Uploading {files.length} file{files.length > 1 ? "s" : ""}...
                 </>
               ) : (
-                `Start Analysis — ${files.length} file${files.length > 1 ? "s" : ""}`
+                `Start processing ${files.length} file${files.length > 1 ? "s" : ""}`
               )}
             </Button>
-
           </CardContent>
         </Card>
       )}
