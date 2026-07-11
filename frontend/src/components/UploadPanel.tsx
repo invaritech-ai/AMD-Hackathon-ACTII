@@ -9,6 +9,8 @@ export function UploadPanel() {
   const [files, setFiles] = useState<File[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const [runId, setRunId] = useState<string | null>(null);
+  const [pendingUploadCount, setPendingUploadCount] = useState<number | null>(null);
+  const [uploadErrorMessage, setUploadErrorMessage] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const upload = useUpload();
   const toast = useToast();
@@ -34,16 +36,24 @@ export function UploadPanel() {
   const handleUpload = () => {
     if (files.length === 0) return;
     const fileCount = files.length;
+    setPendingUploadCount(fileCount);
+    setUploadErrorMessage(null);
     upload.mutate(files, {
       onSuccess: (data) => {
         setRunId(data.run_id);
         toast.success("Pipeline Started", `Processing ${fileCount} file(s)`);
+        setPendingUploadCount(null);
       },
       onError: (error) => {
+        setUploadErrorMessage(error.message);
         toast.error("Upload Failed", error.message);
+        setPendingUploadCount(null);
       },
     });
     setFiles([]);
+    if (inputRef.current) {
+      inputRef.current.value = "";
+    }
   };
 
   if (runId) {
@@ -123,6 +133,41 @@ export function UploadPanel() {
         </CardContent>
       </Card>
 
+      {upload.isPending && pendingUploadCount !== null && (
+        <Card className="rounded-xl border-[var(--color-border)] shadow-none">
+          <CardContent className="flex items-center gap-3 p-4">
+            <Spinner className="h-4 w-4" />
+            <div>
+              <p className="text-sm font-medium text-[var(--color-foreground)]">
+                Uploading {pendingUploadCount} file{pendingUploadCount === 1 ? "" : "s"}
+              </p>
+              <p className="mt-0.5 text-xs text-[var(--color-foreground-subtle)]">
+                Picker selections clear immediately while upload mutation runs.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {uploadErrorMessage && (
+        <Card className="rounded-xl border-[rgb(239_68_68_/_0.25)] bg-[rgb(239_68_68_/_0.08)] shadow-none">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Badge variant="high">Upload error</Badge>
+              <span className="text-[10px] font-[var(--font-mono)] text-[var(--color-destructive)]">
+                Retry required
+              </span>
+            </div>
+            <p
+              className="mt-2 text-xs font-[var(--font-mono)] text-[var(--color-destructive)]"
+              aria-label={`Upload error ${uploadErrorMessage}`}
+            >
+              {uploadErrorMessage}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {files.length > 0 && (
         <Card className="overflow-hidden rounded-xl">
           <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3">
@@ -197,24 +242,6 @@ export function UploadPanel() {
               )}
             </Button>
 
-            {upload.isError && (
-              <Card className="rounded-lg border-[rgb(239_68_68_/_0.25)] bg-[rgb(239_68_68_/_0.08)] shadow-none">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="high">Upload error</Badge>
-                    <span className="text-[10px] font-[var(--font-mono)] text-[var(--color-destructive)]">
-                      Retry required
-                    </span>
-                  </div>
-                  <p
-                    className="mt-2 text-xs font-[var(--font-mono)] text-[var(--color-destructive)]"
-                    aria-label={`Upload error ${(upload.error as Error).message}`}
-                  >
-                    {(upload.error as Error).message}
-                  </p>
-                </CardContent>
-              </Card>
-            )}
           </CardContent>
         </Card>
       )}
