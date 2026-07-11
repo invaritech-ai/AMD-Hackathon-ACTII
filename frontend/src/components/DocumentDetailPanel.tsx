@@ -9,6 +9,8 @@ const typeColors: Record<DocType, string> = {
   purchase_order: "#8B5CF6",
   contract: "#10B981",
   delivery_docket: "#06B6D4",
+  remittance_advice: "#A27CFF",
+  promo_agreement: "#6AA8FF",
   unknown: "#64748B",
 };
 

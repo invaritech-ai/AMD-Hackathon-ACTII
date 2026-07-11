@@ -2,13 +2,12 @@ import { useState, useRef, useCallback } from "react";
 import { Upload, FileText, X } from "lucide-react";
 import { Badge, Button, Card, CardContent, ScrollArea, Spinner, cn } from "@claims/ui";
 import { useUpload } from "@/hooks/useUpload";
-import { PipelineStepper } from "./PipelineStepper";
 import { useToast } from "@/store/toastStore";
 
 export function UploadPanel() {
   const [files, setFiles] = useState<File[]>([]);
   const [dragOver, setDragOver] = useState(false);
-  const [runId, setRunId] = useState<string | null>(null);
+  const [submittedCount, setSubmittedCount] = useState<number | null>(null);
   const [pendingUploadCount, setPendingUploadCount] = useState<number | null>(null);
   const [uploadErrorMessage, setUploadErrorMessage] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -40,8 +39,8 @@ export function UploadPanel() {
     setUploadErrorMessage(null);
     upload.mutate(files, {
       onSuccess: (data) => {
-        setRunId(data.run_id);
-        toast.success("Pipeline Started", `Processing ${fileCount} file(s)`);
+        setSubmittedCount(data.document_count);
+        toast.success("Documents queued", `${fileCount} file(s) are now being processed`);
         setPendingUploadCount(null);
       },
       onError: (error) => {
@@ -55,27 +54,6 @@ export function UploadPanel() {
       inputRef.current.value = "";
     }
   };
-
-  if (runId) {
-    return (
-      <div className="space-y-5">
-        <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-4">
-          <div>
-            <p className="text-label">Processing run</p>
-            <p className="mt-1 text-[13px] text-[var(--color-foreground-muted)]">
-              The evidence batch is moving through the recovery pipeline.
-            </p>
-          </div>
-          <Badge variant="info">Live</Badge>
-        </div>
-        <Card>
-          <CardContent className="py-7">
-            <PipelineStepper runId={runId} />
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-5">
@@ -176,9 +154,30 @@ export function UploadPanel() {
                 Uploading {pendingUploadCount} file{pendingUploadCount === 1 ? "" : "s"}
               </p>
               <p className="mt-0.5 text-[12px] text-[var(--color-foreground-muted)]">
-                The processing run will appear here as soon as the upload is accepted.
+                Documents are being monitored through validation and classification.
               </p>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {submittedCount !== null && !upload.isPending && (
+        <Card className="border-[rgb(43_203_136_/_0.28)] bg-[rgb(43_203_136_/_0.06)] shadow-none">
+          <CardContent className="flex items-center justify-between gap-4 p-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <Badge variant="success">Queued</Badge>
+                <p className="text-[13px] font-semibold text-[var(--color-foreground)]">
+                  {submittedCount} document{submittedCount === 1 ? "" : "s"} submitted
+                </p>
+              </div>
+              <p className="mt-2 text-[12px] text-[var(--color-foreground-muted)]">
+                Processing status remains available while the backend agents classify the evidence.
+              </p>
+            </div>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setSubmittedCount(null)}>
+              Dismiss
+            </Button>
           </CardContent>
         </Card>
       )}

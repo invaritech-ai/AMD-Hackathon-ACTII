@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { DocType } from "@claims/shared";
 import { PageContainer } from "@/components/PageContainer";
 import { CaseGraph } from "@/components/CaseGraph";
-import { useCaseGraph, useCases } from "@/hooks/useCases";
+import { useCaseGraph, useCaseReconciliation, useCases, useRunReconciliation } from "@/hooks/useCases";
 import { useDocuments } from "@/hooks/useDocuments";
 import { CaseRail } from "@/components/cases/CaseRail";
 import { CaseWorkspaceHeader } from "@/components/cases/CaseWorkspaceHeader";
@@ -29,13 +29,16 @@ export function GraphRoute() {
   }, [casesQuery.data]);
 
   const graphQuery = useCaseGraph(activeCaseId);
+  const reconciliationQuery = useCaseReconciliation(activeCaseId);
+  const runReconciliation = useRunReconciliation();
   const documentsQuery = useDocuments({
     query: search,
     type: type === "all" ? undefined : type,
     unassigned: unassignedOnly || undefined,
   });
 
-  const activeCase = casesQuery.data?.find((caseItem) => caseItem.case_id === activeCaseId);
+  const activeIndex = casesQuery.data?.findIndex((caseItem) => caseItem.case_id === activeCaseId) ?? -1;
+  const activeCase = activeIndex >= 0 ? casesQuery.data?.[activeIndex] : undefined;
 
   return (
     <PageContainer className="flex h-[calc(100dvh-3rem)] min-h-0 flex-col">
@@ -50,7 +53,14 @@ export function GraphRoute() {
           <CaseRail cases={casesQuery.data} activeCaseId={activeCaseId} onSelect={setActiveCaseId} isLoading={casesQuery.isLoading} compact />
 
         <section className="flex min-w-0 min-h-0 flex-col">
-          <CaseWorkspaceHeader caseItem={activeCase ?? null} isLoading={casesQuery.isLoading} />
+          <CaseWorkspaceHeader
+            caseItem={activeCase ?? null}
+            index={activeIndex < 0 ? 0 : activeIndex}
+            isLoading={casesQuery.isLoading}
+            reconciliation={reconciliationQuery.data}
+            isReconciling={runReconciliation.isPending}
+            onReconcile={activeCaseId ? () => runReconciliation.mutate(activeCaseId) : undefined}
+          />
           {casesQuery.isLoading ? (
             <div className="workspace-bezel flex h-full min-h-0 items-center justify-center rounded-xl px-6 text-center">
               <p className="max-w-xs text-[13px] leading-relaxed text-[var(--color-foreground-muted)]">Loading cases...</p>
@@ -85,6 +95,7 @@ export function GraphRoute() {
             onTypeChange={setType}
             unassignedOnly={unassignedOnly}
             onUnassignedChange={setUnassignedOnly}
+            activeCaseId={activeCaseId}
             compact
           />
         </aside>

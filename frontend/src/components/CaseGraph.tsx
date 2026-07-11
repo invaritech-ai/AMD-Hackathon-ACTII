@@ -16,6 +16,8 @@ const typeColor: Record<DocType, string> = {
   purchase_order: "#6AA8FF",
   contract: "#2BCB88",
   delivery_docket: "#44C4E0",
+  remittance_advice: "#B79BFF",
+  promo_agreement: "#8CB9FF",
   unknown: "#71819A",
 };
 
@@ -24,6 +26,8 @@ const typeColorBg: Record<DocType, string> = {
   purchase_order: "rgb(106 168 255 / 0.14)",
   contract: "rgb(43 203 136 / 0.14)",
   delivery_docket: "rgb(68 196 224 / 0.14)",
+  remittance_advice: "rgb(183 155 255 / 0.14)",
+  promo_agreement: "rgb(140 185 255 / 0.14)",
   unknown: "rgb(113 129 154 / 0.14)",
 };
 

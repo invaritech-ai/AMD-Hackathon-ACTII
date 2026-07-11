@@ -19,6 +19,7 @@ import {
   TabsTrigger,
   cn,
 } from "@claims/ui";
+import { useAttachDocument, useDetachDocument } from "@/hooks/useCases";
 import { useDeleteDocument } from "@/hooks/useDocuments";
 
 const typeLabels: Record<DocType, string> = {
@@ -26,6 +27,8 @@ const typeLabels: Record<DocType, string> = {
   purchase_order: "Purchase order",
   contract: "Contract",
   delivery_docket: "Delivery docket",
+  remittance_advice: "Remittance advice",
+  promo_agreement: "Promo agreement",
   unknown: "Unknown",
 };
 
@@ -34,6 +37,8 @@ const typeColors: Record<DocType, string> = {
   purchase_order: "border-[rgb(106_168_255_/_0.3)] bg-[rgb(106_168_255_/_0.1)] text-[#8CB9FF]",
   contract: "border-[rgb(43_203_136_/_0.3)] bg-[rgb(43_203_136_/_0.1)] text-[var(--color-success)]",
   delivery_docket: "border-[rgb(68_196_224_/_0.3)] bg-[rgb(68_196_224_/_0.1)] text-[#67D6F2]",
+  remittance_advice: "border-[rgb(162_124_255_/_0.3)] bg-[rgb(162_124_255_/_0.1)] text-[#B79BFF]",
+  promo_agreement: "border-[rgb(106_168_255_/_0.3)] bg-[rgb(106_168_255_/_0.1)] text-[#8CB9FF]",
   unknown: "border-[var(--color-border)] bg-[var(--color-surface-raised)] text-[var(--color-foreground-muted)]",
 };
 
@@ -44,6 +49,8 @@ const filterLabels: Record<DocType | "all", string> = {
   purchase_order: "PO",
   contract: "Contract",
   delivery_docket: "Docket",
+  remittance_advice: "Remit",
+  promo_agreement: "Promo",
 };
 
 function formatDate(value: string) {
@@ -68,6 +75,7 @@ interface FilesLibraryProps {
   onTypeChange: (value: DocType | "all") => void;
   unassignedOnly: boolean;
   onUnassignedChange: (value: boolean) => void;
+  activeCaseId?: string | null;
   compact?: boolean;
 }
 
@@ -81,9 +89,12 @@ export function FilesLibrary({
   onTypeChange,
   unassignedOnly,
   onUnassignedChange,
+  activeCaseId,
   compact = false,
 }: FilesLibraryProps) {
   const deleteDocument = useDeleteDocument();
+  const attachDocument = useAttachDocument();
+  const detachDocument = useDetachDocument();
   const [pendingDeleteDocument, setPendingDeleteDocument] = useState<DocumentSummary | null>(null);
 
   const documentTypes = useMemo(
@@ -202,18 +213,39 @@ export function FilesLibrary({
                     {document.ids.length ? ` / ${document.ids.length} evidence id${document.ids.length === 1 ? "" : "s"}` : ""}
                   </p>
                 </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  disabled={deleteDocument.isPending}
-                  onClick={() => setPendingDeleteDocument(document)}
-                  aria-label={`Permanently remove ${document.filename}`}
-                  title="Remove permanently from the library and all cases"
-                  className="h-8 w-8 rounded-md p-0 text-[var(--color-foreground-subtle)] hover:bg-[rgb(241_100_100_/_0.1)] hover:text-[var(--color-destructive)]"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
+                <div className="flex shrink-0 items-center gap-1">
+                  {activeCaseId && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={attachDocument.isPending || detachDocument.isPending}
+                      onClick={() => {
+                        if (document.case_ids.includes(activeCaseId)) {
+                          detachDocument.mutate({ caseId: activeCaseId, documentId: document.id });
+                          return;
+                        }
+                        attachDocument.mutate({ caseId: activeCaseId, documentId: document.id });
+                      }}
+                      aria-label={`${document.case_ids.includes(activeCaseId) ? "Detach" : "Attach"} ${document.filename} ${document.case_ids.includes(activeCaseId) ? "from" : "to"} the current case`}
+                      className="h-8 px-2 text-[11px]"
+                    >
+                      {document.case_ids.includes(activeCaseId) ? "Detach" : "Attach"}
+                    </Button>
+                  )}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={deleteDocument.isPending}
+                    onClick={() => setPendingDeleteDocument(document)}
+                    aria-label={`Permanently remove ${document.filename}`}
+                    title="Remove permanently from the library and all cases"
+                    className="h-8 w-8 rounded-md p-0 text-[var(--color-foreground-subtle)] hover:bg-[rgb(241_100_100_/_0.1)] hover:text-[var(--color-destructive)]"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
               </div>
             </article>
           ))}

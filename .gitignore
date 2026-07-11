@@ -43,3 +43,11 @@ Thumbs.db
 
 # Vite
 frontend/.vite/
+
+.superpowers
+
+backend/data
+docs
+data
+outputs
+

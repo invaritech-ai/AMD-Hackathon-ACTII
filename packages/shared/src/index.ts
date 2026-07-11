@@ -1,6 +1,13 @@
 // ── Locked API Contract Types ──
 
-export type DocType = "invoice" | "purchase_order" | "contract" | "delivery_docket" | "unknown";
+export type DocType =
+  | "invoice"
+  | "purchase_order"
+  | "contract"
+  | "delivery_docket"
+  | "remittance_advice"
+  | "promo_agreement"
+  | "unknown";
 
 export interface DocumentUploadResponse {
   document_id: string;
@@ -138,7 +145,7 @@ export interface GraphResponse {
 
 export interface CaseSummary {
   case_id: string;
-  title: string;
+  title: string | null;
   status: string;
   document_count: number;
   shared_ids: string[];
@@ -153,6 +160,38 @@ export interface DocumentSummary {
   ids: string[];
   created_at: string;
   size_bytes: number;
+}
+
+export interface CaseExceptionResponse {
+  id: string;
+  document_id: string | null;
+  check_type: string;
+  severity: string;
+  expected_value: string | null;
+  actual_value: string | null;
+  delta: string | null;
+  currency: string | null;
+  explanation: string | null;
+  status: string;
+}
+
+export interface CaseClaimResponse {
+  id: string;
+  total_amount: string;
+  currency: string | null;
+  draft_text: string | null;
+  status: string;
+}
+
+export interface ReconciliationResponse {
+  case_id: string;
+  reconciliation_id: string | null;
+  status: "ok" | "exceptions_found";
+  summary: string | null;
+  total_recoverable: string;
+  currency: string | null;
+  exceptions: CaseExceptionResponse[];
+  claim: CaseClaimResponse | null;
 }
 
 // ── Upload (legacy compat) ──

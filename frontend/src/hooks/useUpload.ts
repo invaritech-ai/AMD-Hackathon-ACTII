@@ -45,15 +45,13 @@ export function useUpload() {
       const documentIds = uploadResults.flatMap((result) => result.documentId && !result.failed ? [result.documentId] : []);
       if (documentIds.length === 0) throw new Error("No documents completed preprocessing");
 
-      const run = await api.createRun(documentIds);
-      return { run_id: run.id, document_count: documentIds.length };
+      return { document_ids: documentIds, document_count: documentIds.length };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cases"] });
       queryClient.invalidateQueries({ queryKey: ["case-graph"] });
       queryClient.invalidateQueries({ queryKey: ["documents"] });
       queryClient.invalidateQueries({ queryKey: ["graph"] });
-      queryClient.invalidateQueries({ queryKey: ["runs"] });
     },
   });
 }

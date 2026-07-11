@@ -8,6 +8,7 @@ import type {
   CaseSummary,
   DocumentSummary,
   DocType,
+  ReconciliationResponse,
 } from "@claims/shared";
 
 const BASE_URL = "/api/v1";
@@ -107,6 +108,21 @@ export const api = {
 
   getCaseGraph: (caseId: string): Promise<GraphResponse> =>
     request<GraphResponse>(`/cases/${caseId}/graph`),
+
+  attachDocument: (caseId: string, documentId: string): Promise<GraphResponse> =>
+    request<GraphResponse>(`/cases/${caseId}/documents`, {
+      method: "POST",
+      body: JSON.stringify({ document_id: documentId }),
+    }),
+
+  detachDocument: (caseId: string, documentId: string): Promise<void> =>
+    request<void>(`/cases/${caseId}/documents/${documentId}`, { method: "DELETE" }),
+
+  getReconciliation: (caseId: string): Promise<ReconciliationResponse> =>
+    request<ReconciliationResponse>(`/cases/${caseId}/reconciliation`),
+
+  runReconciliation: (caseId: string): Promise<ReconciliationResponse> =>
+    request<ReconciliationResponse>(`/cases/${caseId}/reconcile`, { method: "POST" }),
 
   getDocuments: (filters: DocumentListFilters = {}): Promise<DocumentSummary[]> => {
     const params = new URLSearchParams();
