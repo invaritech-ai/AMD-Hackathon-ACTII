@@ -27,14 +27,6 @@ const typeColorBg: Record<DocType, string> = {
   unknown: "rgb(100 116 139 / 0.15)",
 };
 
-const caseColors = [
-  "rgb(245 158 11 / 0.08)",
-  "rgb(139 92 246 / 0.08)",
-  "rgb(16 185 129 / 0.08)",
-  "rgb(6 182 212 / 0.08)",
-  "rgb(239 68 68 / 0.08)",
-];
-
 function layoutNodes(
   graphNodes: { id: string; type: DocType; filename: string; ids: string[]; case_id: string }[],
   graphEdges: { source: string; target: string; shared_ids: string[] }[]

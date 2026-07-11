@@ -86,7 +86,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         } as React.CSSProperties
       }
     >
-      <Sidebar collapsible="icon" className="z-10">
+      <Sidebar collapsible="icon" className="md:z-10">
         <SidebarHeader className="h-16 flex-row items-center gap-2 border-b border-[var(--color-border)] px-4 py-0">
           <div className="min-w-0 flex-1 overflow-hidden group-data-[collapsible=icon]:hidden">
             <span className="text-[13px] font-[var(--font-display)] font-semibold text-[var(--color-foreground)]">

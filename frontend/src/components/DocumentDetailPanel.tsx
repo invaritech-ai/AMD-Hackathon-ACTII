@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { marked } from "marked";
-import { SlideOver, SlideOverContent, Badge, Spinner } from "@claims/ui";
+import { SlideOver, SlideOverContent, SlideOverDescription, SlideOverTitle, Badge, Spinner } from "@claims/ui";
 import { api } from "@/lib/api";
 import type { DocType } from "@claims/shared";
 
@@ -165,6 +165,16 @@ export function DocumentDetailPanel({ documentId, onClose }: DocumentDetailPanel
   return (
     <SlideOver open={!!documentId} onOpenChange={(open: boolean) => !open && onClose()}>
       <SlideOverContent className="max-w-3xl">
+        <SlideOverTitle className="sr-only">
+          {isLoading ? "Loading document details" : isError || !doc ? "Document details unavailable" : doc.filename}
+        </SlideOverTitle>
+        <SlideOverDescription className="sr-only">
+          {isLoading
+            ? "Loading the selected document details."
+            : isError || !doc
+              ? "The selected document details could not be loaded."
+              : "Review the selected document's extracted content and data."}
+        </SlideOverDescription>
         {isLoading ? (
           <div className="flex items-center justify-center gap-3 py-12">
             <Spinner className="h-5 w-5" />
