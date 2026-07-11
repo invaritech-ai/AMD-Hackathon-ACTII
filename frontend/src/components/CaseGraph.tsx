@@ -12,19 +12,19 @@ import { DocumentDetailPanel } from "./DocumentDetailPanel";
 import type { DocType, GraphResponse } from "@claims/shared";
 
 const typeColor: Record<DocType, string> = {
-  invoice: "#F59E0B",
-  purchase_order: "#8B5CF6",
-  contract: "#10B981",
-  delivery_docket: "#06B6D4",
-  unknown: "#64748B",
+  invoice: "#F6A623",
+  purchase_order: "#6AA8FF",
+  contract: "#2BCB88",
+  delivery_docket: "#44C4E0",
+  unknown: "#71819A",
 };
 
 const typeColorBg: Record<DocType, string> = {
-  invoice: "rgb(245 158 11 / 0.15)",
-  purchase_order: "rgb(139 92 246 / 0.15)",
-  contract: "rgb(16 185 129 / 0.15)",
-  delivery_docket: "rgb(6 182 212 / 0.15)",
-  unknown: "rgb(100 116 139 / 0.15)",
+  invoice: "rgb(246 166 35 / 0.14)",
+  purchase_order: "rgb(106 168 255 / 0.14)",
+  contract: "rgb(43 203 136 / 0.14)",
+  delivery_docket: "rgb(68 196 224 / 0.14)",
+  unknown: "rgb(113 129 154 / 0.14)",
 };
 
 function layoutNodes(
@@ -94,18 +94,18 @@ function DocumentNode({ data }: { data: { filename: string; docType: DocType; id
   const bg = typeColorBg[data.docType];
   return (
     <div
-      className="px-4 py-3 rounded-lg border text-center min-w-[160px] shadow-sm"
+      className="min-w-[168px] rounded-xl border px-4 py-3 text-center shadow-[0_12px_28px_rgb(0_0_0_/_0.18)]"
       style={{
         background: "var(--color-surface)",
         borderColor: color,
         boxShadow: `0 0 0 1px ${bg}`,
       }}
     >
-      <p className="text-[11px] font-[var(--font-mono)] mb-1 truncate max-w-[140px]" style={{ color }}>
+      <p className="mb-1.5 max-w-[140px] truncate text-[11px] font-semibold" style={{ color }}>
         {data.filename}
       </p>
       <span
-        className="text-[9px] font-[var(--font-mono)] uppercase tracking-[0.1em] px-2 py-0.5 rounded"
+        className="rounded-[4px] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em]"
         style={{ background: bg, color }}
       >
         {data.docType}
@@ -136,7 +136,7 @@ export function CaseGraph({ graph, isLoading, isError }: CaseGraphProps) {
 
   if (isLoading) {
     return (
-      <div className="w-full border border-dashed border-[var(--color-border)] rounded-lg flex flex-col items-center justify-center min-h-[500px] gap-3">
+      <div className="workspace-bezel flex min-h-[560px] w-full flex-col items-center justify-center gap-3 rounded-xl">
         <Spinner className="h-5 w-5" />
         <p className="text-sm text-[var(--color-foreground-subtle)] font-[var(--font-mono)]">Loading graph</p>
       </div>
@@ -145,7 +145,7 @@ export function CaseGraph({ graph, isLoading, isError }: CaseGraphProps) {
 
   if (isError) {
     return (
-      <div className="w-full border border-dashed border-[var(--color-border)] rounded-lg flex items-center justify-center min-h-[500px]">
+      <div className="workspace-bezel flex min-h-[560px] w-full items-center justify-center rounded-xl">
         <p className="text-sm text-[var(--color-destructive)] font-[var(--font-mono)]">Failed to load document graph.</p>
       </div>
     );
@@ -153,7 +153,7 @@ export function CaseGraph({ graph, isLoading, isError }: CaseGraphProps) {
 
   if (!graph || graph.nodes.length === 0) {
     return (
-      <div className="w-full border border-dashed border-[var(--color-border)] rounded-lg flex items-center justify-center min-h-[500px]">
+      <div className="workspace-bezel flex min-h-[560px] w-full items-center justify-center rounded-xl">
         <p className="text-sm text-[var(--color-foreground-subtle)] font-[var(--font-mono)]">
           This case has no resolved documents yet.
         </p>
@@ -163,7 +163,7 @@ export function CaseGraph({ graph, isLoading, isError }: CaseGraphProps) {
 
   return (
     <>
-      <div className="w-full border border-[var(--color-border)] rounded-lg overflow-hidden" style={{ height: 560 }}>
+      <div className="workspace-bezel relative w-full overflow-hidden rounded-xl" style={{ height: 560 }}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -176,8 +176,8 @@ export function CaseGraph({ graph, isLoading, isError }: CaseGraphProps) {
           nodesConnectable={false}
           edgesReconnectable={false}
         >
-          <Background color="var(--color-border)" gap={20} />
-          <Controls className="[&_button]:!bg-[var(--color-surface)] [&_button]:!border-[var(--color-border)] [&_button]:!text-[var(--color-foreground-subtle)]" />
+          <Background color="#263650" gap={22} />
+          <Controls className="!rounded-md !border-[var(--color-border)] !bg-[var(--color-surface-raised)] !shadow-lg [&_button]:!border-[var(--color-border)] [&_button]:!bg-[var(--color-surface-raised)] [&_button]:!text-[var(--color-foreground-muted)] [&_button:hover]:!bg-[var(--color-surface-hover)]" />
         </ReactFlow>
       </div>
       <DocumentDetailPanel documentId={selectedDocId} onClose={() => setSelectedDocId(null)} />

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { FileSearch, Search, Trash2, X } from "lucide-react";
+import { FileText, Search, Trash2, X } from "lucide-react";
 import type { DocType, DocumentSummary } from "@claims/shared";
 import {
   Badge,
@@ -30,11 +30,20 @@ const typeLabels: Record<DocType, string> = {
 };
 
 const typeColors: Record<DocType, string> = {
-  invoice: "text-amber-300 bg-amber-500/10 border-amber-500/20",
-  purchase_order: "text-violet-300 bg-violet-500/10 border-violet-500/20",
-  contract: "text-emerald-300 bg-emerald-500/10 border-emerald-500/20",
-  delivery_docket: "text-cyan-300 bg-cyan-500/10 border-cyan-500/20",
-  unknown: "text-slate-400 bg-slate-500/10 border-slate-500/20",
+  invoice: "border-[rgb(246_166_35_/_0.3)] bg-[rgb(246_166_35_/_0.1)] text-[var(--color-warning)]",
+  purchase_order: "border-[rgb(106_168_255_/_0.3)] bg-[rgb(106_168_255_/_0.1)] text-[#8CB9FF]",
+  contract: "border-[rgb(43_203_136_/_0.3)] bg-[rgb(43_203_136_/_0.1)] text-[var(--color-success)]",
+  delivery_docket: "border-[rgb(68_196_224_/_0.3)] bg-[rgb(68_196_224_/_0.1)] text-[#67D6F2]",
+  unknown: "border-[var(--color-border)] bg-[var(--color-surface-raised)] text-[var(--color-foreground-muted)]",
+};
+
+const filterLabels: Record<DocType | "all", string> = {
+  all: "All",
+  unknown: "Other",
+  invoice: "Invoice",
+  purchase_order: "PO",
+  contract: "Contract",
+  delivery_docket: "Docket",
 };
 
 function formatDate(value: string) {
@@ -88,19 +97,24 @@ export function FilesLibrary({
   };
 
   return (
-    <Card className="flex min-h-[620px] flex-col rounded-xl">
+    <Card className="flex min-h-[560px] flex-col overflow-hidden">
       <div className="border-b border-[var(--color-border)] p-4">
-        <p className="text-label">Files library</p>
-        <p className="mt-0.5 text-sm font-medium text-[var(--color-foreground)]">Every uploaded document</p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-label">Files library</p>
+            <p className="mt-1 text-[13px] font-semibold text-[var(--color-foreground)]">Every uploaded document</p>
+          </div>
+          <Badge variant="neutral">{documents?.length ?? 0}</Badge>
+        </div>
 
-        <div className="mt-3 flex items-stretch rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] focus-within:border-[var(--color-accent)] focus-within:ring-2 focus-within:ring-[var(--color-accent)]/20">
+        <div className="mt-4 flex items-stretch rounded-md border border-[var(--color-border)] bg-[var(--color-surface-raised)]">
           <span className="flex items-center pl-3 text-[var(--color-foreground-subtle)]">
             <Search className="h-3.5 w-3.5" />
           </span>
           <Input
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}
-            className="h-11 flex-1 border-0 bg-transparent px-2 shadow-none focus-visible:border-0 focus-visible:ring-0"
+            className="h-9 flex-1 border-0 bg-transparent px-2 shadow-none focus-visible:border-0 focus-visible:ring-0"
             placeholder="Search files"
             aria-label="Search files"
           />
@@ -111,48 +125,48 @@ export function FilesLibrary({
               size="sm"
               onClick={() => onSearchChange("")}
               aria-label="Clear search"
-              className="h-11 w-11 rounded-l-none rounded-r-lg p-0 text-[var(--color-foreground-subtle)]"
+              className="h-9 w-9 rounded-l-none rounded-r-md p-0 text-[var(--color-foreground-subtle)]"
             >
               <X className="h-3.5 w-3.5" />
             </Button>
           ) : (
-            <div className="h-11 w-11" aria-hidden="true" />
+            <div className="h-9 w-9" aria-hidden="true" />
           )}
         </div>
 
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-4">
+          <p className="mb-2 text-label">File type</p>
           <Tabs value={type} onValueChange={(value) => onTypeChange(value as DocType | "all")}>
-            <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-transparent p-0">
+            <TabsList className="grid h-auto w-full grid-cols-3 gap-1 rounded-lg bg-[var(--color-surface-raised)] p-1">
               {documentTypes.map((filter) => (
                 <TabsTrigger
                   key={filter}
                   value={filter}
+                  title={filter === "all" ? "All document types" : typeLabels[filter]}
                   className={cn(
-                    "h-8 rounded-md px-2.5 text-[10px] font-[var(--font-mono)] tracking-normal",
-                    "border border-transparent data-[state=active]:border-[var(--color-border)]",
-                    filter === "all"
-                      ? "data-[state=active]:bg-[var(--color-primary)] data-[state=active]:text-[var(--color-primary-foreground)]"
-                      : "data-[state=active]:bg-[var(--color-surface)] data-[state=active]:text-[var(--color-foreground)]"
+                    "h-7 rounded-[4px] border border-transparent px-1.5 text-[10px] font-medium tracking-[0.02em] text-[var(--color-foreground-muted)]",
+                    "data-[state=active]:border-[var(--color-primary-border)] data-[state=active]:bg-[var(--color-primary-soft)] data-[state=active]:text-[var(--color-foreground)]"
                   )}
                 >
-                  {filter === "all" ? "All types" : typeLabels[filter]}
+                  {filterLabels[filter]}
                 </TabsTrigger>
               ))}
             </TabsList>
           </Tabs>
           <Button
             type="button"
-            variant={unassignedOnly ? "primary" : "secondary"}
+            variant="ghost"
             size="sm"
             onClick={() => onUnassignedChange(!unassignedOnly)}
             className={cn(
-              "h-8 rounded-md px-2.5 text-[10px] font-[var(--font-mono)] tracking-normal",
+              "mt-3 h-8 w-full justify-between rounded-md border px-2.5 text-[11px]",
               unassignedOnly
-                ? "bg-[var(--color-accent)] text-[var(--color-accent-foreground)] hover:bg-[var(--color-accent)]/90"
-                : "text-[var(--color-foreground-subtle)] hover:text-[var(--color-foreground)]"
+                ? "border-[var(--color-primary-border)] bg-[var(--color-primary-soft)] text-[var(--color-foreground)]"
+                : "border-[var(--color-border)] text-[var(--color-foreground-muted)] hover:text-[var(--color-foreground)]"
             )}
           >
-            Unassigned
+            <span>Only unassigned</span>
+            <span className={cn("h-1.5 w-1.5 rounded-full", unassignedOnly ? "bg-[var(--color-primary)]" : "bg-[var(--color-border-light)]")} />
           </Button>
         </div>
       </div>
@@ -166,27 +180,23 @@ export function FilesLibrary({
           )}
 
           {documents?.map((document) => (
-            <article key={document.id} className="group border-b border-[var(--color-border)] py-3 last:border-b-0">
-              <div className="flex items-start gap-2">
-                <FileSearch className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-foreground-subtle)]" />
+            <article key={document.id} className="group border-b border-[var(--color-border)] py-3.5 last:border-b-0">
+              <div className="flex items-start gap-3">
+                <FileText className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-foreground-muted)]" />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-[var(--color-foreground)]" title={document.filename}>
+                  <p className="truncate text-[13px] font-semibold text-[var(--color-foreground)]" title={document.filename}>
                     {document.filename}
                   </p>
                   <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                    <span className={cn("rounded border px-1.5 py-0.5 text-[9px] font-[var(--font-mono)] uppercase tracking-[0.08em]", typeColors[document.type])}>
+                    <span className={cn("rounded-[4px] border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.07em]", typeColors[document.type])}>
                       {typeLabels[document.type]}
                     </span>
-                    <Badge variant="neutral" className="whitespace-nowrap">
-                      {formatBytes(document.size_bytes)}
-                    </Badge>
-                    <span className="text-[10px] font-[var(--font-mono)] text-[var(--color-foreground-subtle)]">
-                      {formatDate(document.created_at)}
-                    </span>
+                    <span className="text-[11px] text-[var(--color-foreground-subtle)]">{formatBytes(document.size_bytes)}</span>
+                    <span className="text-[11px] text-[var(--color-foreground-subtle)]">{formatDate(document.created_at)}</span>
                   </div>
-                  <p className="mt-1.5 text-[10px] text-[var(--color-foreground-subtle)]">
+                  <p className="mt-1.5 text-[11px] text-[var(--color-foreground-subtle)]">
                     {document.case_ids.length ? `In ${document.case_ids.length} case${document.case_ids.length === 1 ? "" : "s"}` : "Unassigned"}
-                    {document.ids.length ? ` · ${document.ids.length} evidence id${document.ids.length === 1 ? "" : "s"}` : ""}
+                    {document.ids.length ? ` / ${document.ids.length} evidence id${document.ids.length === 1 ? "" : "s"}` : ""}
                   </p>
                 </div>
                 <Button
@@ -197,7 +207,7 @@ export function FilesLibrary({
                   onClick={() => setPendingDeleteDocument(document)}
                   aria-label={`Permanently remove ${document.filename}`}
                   title="Remove permanently from the library and all cases"
-                  className="h-8 w-8 rounded-md p-0 text-[var(--color-foreground-subtle)] hover:bg-red-500/10 hover:text-red-400"
+                  className="h-8 w-8 rounded-md p-0 text-[var(--color-foreground-subtle)] hover:bg-[rgb(241_100_100_/_0.1)] hover:text-[var(--color-destructive)]"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
@@ -207,9 +217,9 @@ export function FilesLibrary({
         </div>
       </ScrollArea>
 
-      <div className="border-t border-[var(--color-border)] px-4 py-3">
-        <p className="text-[10px] leading-relaxed text-[var(--color-foreground-subtle)]">
-          Attach and detach controls stay unavailable until the curation API ships. Removing a file deletes its source and every case association.
+      <div className="border-t border-[var(--color-border)] bg-[var(--color-surface-raised)] px-4 py-3">
+        <p className="text-[11px] leading-relaxed text-[var(--color-foreground-subtle)]">
+          Removing a document deletes its source and every case association.
         </p>
       </div>
 
@@ -237,4 +247,3 @@ export function FilesLibrary({
     </Card>
   );
 }
-

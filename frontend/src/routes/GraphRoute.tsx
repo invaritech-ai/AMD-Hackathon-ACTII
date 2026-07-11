@@ -43,45 +43,47 @@ export function GraphRoute() {
         title="Case Command Center"
         label="Cases"
         labelColor="bg-[var(--color-accent)]"
-        description="Review one evidence case at a time, then clean the shared upload library."
+        description="Focus on one investigation at a time, then keep the shared evidence library clean and usable."
       />
-      <div className="grid gap-4 xl:grid-cols-[240px_minmax(0,1fr)_340px]">
+      <div className="grid gap-5 xl:grid-cols-[230px_minmax(0,1fr)] 2xl:grid-cols-[240px_minmax(0,1fr)_340px]">
         <CaseRail cases={casesQuery.data} activeCaseId={activeCaseId} onSelect={setActiveCaseId} isLoading={casesQuery.isLoading} />
 
         <section className="min-w-0">
           <CaseWorkspaceHeader caseItem={activeCase ?? null} isLoading={casesQuery.isLoading} />
           {casesQuery.isLoading ? (
-            <div className="surface flex min-h-[500px] items-center justify-center rounded-xl px-6 text-center">
-              <p className="max-w-xs text-sm leading-relaxed text-[var(--color-foreground-subtle)]">Loading cases...</p>
+            <div className="workspace-bezel flex min-h-[560px] items-center justify-center rounded-xl px-6 text-center">
+              <p className="max-w-xs text-[13px] leading-relaxed text-[var(--color-foreground-muted)]">Loading cases...</p>
             </div>
           ) : casesQuery.isError ? (
-            <div className="surface flex min-h-[500px] items-center justify-center rounded-xl px-6 text-center">
-              <p className="max-w-xs text-sm leading-relaxed text-[var(--color-destructive)]">
+            <div className="workspace-bezel flex min-h-[560px] items-center justify-center rounded-xl px-6 text-center">
+              <p className="max-w-xs text-[13px] leading-relaxed text-[var(--color-destructive)]">
                 Cases could not be loaded.
               </p>
             </div>
           ) : activeCaseId ? (
             <CaseGraph graph={graphQuery.data} isLoading={graphQuery.isLoading} isError={graphQuery.isError} />
           ) : (
-            <div className="surface flex min-h-[500px] items-center justify-center rounded-xl px-6 text-center">
-              <p className="max-w-xs text-sm leading-relaxed text-[var(--color-foreground-subtle)]">
+            <div className="workspace-bezel flex min-h-[560px] items-center justify-center rounded-xl px-6 text-center">
+              <p className="max-w-xs text-[13px] leading-relaxed text-[var(--color-foreground-muted)]">
                 Process related documents to create the first evidence case.
               </p>
             </div>
           )}
         </section>
 
-        <FilesLibrary
-          documents={documentsQuery.data}
-          isLoading={documentsQuery.isLoading}
-          isError={documentsQuery.isError}
-          search={search}
-          onSearchChange={setSearch}
-          type={type}
-          onTypeChange={setType}
-          unassignedOnly={unassignedOnly}
-          onUnassignedChange={setUnassignedOnly}
-        />
+        <aside className="xl:col-span-2 2xl:col-span-1">
+          <FilesLibrary
+            documents={documentsQuery.data}
+            isLoading={documentsQuery.isLoading}
+            isError={documentsQuery.isError}
+            search={search}
+            onSearchChange={setSearch}
+            type={type}
+            onTypeChange={setType}
+            unassignedOnly={unassignedOnly}
+            onUnassignedChange={setUnassignedOnly}
+          />
+        </aside>
       </div>
     </PageContainer>
   );
