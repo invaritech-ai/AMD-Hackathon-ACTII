@@ -82,10 +82,24 @@ const SidebarProvider = React.forwardRef<
       ...props
     },
     ref
-  ) => {
+    ) => {
     const isMobile = useIsMobile();
     const [openMobile, setOpenMobile] = React.useState(false);
-    const [openState, setOpenState] = React.useState(defaultOpen);
+    const [openState, setOpenState] = React.useState(() => {
+      if (typeof document === "undefined") {
+        return defaultOpen;
+      }
+
+      const match = document.cookie.match(
+        new RegExp(`(?:^|; )${SIDEBAR_COOKIE_NAME}=([^;]*)`)
+      );
+
+      if (!match) {
+        return defaultOpen;
+      }
+
+      return match[1] === "true";
+    });
 
     const open = openProp ?? openState;
     const setOpen = React.useCallback<React.Dispatch<React.SetStateAction<boolean>>>(
@@ -321,12 +335,13 @@ const SidebarRail = React.forwardRef<
 >(({ className, onClick, ...props }, ref) => {
   const { toggleSidebar } = useSidebar();
 
-  return (
-    <button
-      ref={ref}
-      data-sidebar="rail"
-      aria-label="Toggle Sidebar"
-      tabIndex={-1}
+    return (
+      <button
+        ref={ref}
+        type="button"
+        data-sidebar="rail"
+        aria-label="Toggle Sidebar"
+        tabIndex={-1}
       title="Toggle Sidebar"
       className={cn(
         "absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] hover:after:bg-[var(--color-border)] group-data-[side=left]:-right-4 group-data-[side=right]:left-0 sm:flex",
@@ -517,6 +532,7 @@ const SidebarMenuButton = React.forwardRef<
     const button = (
       <Comp
         ref={ref}
+        type={asChild ? undefined : "button"}
         data-sidebar="menu-button"
         data-size={size}
         data-active={isActive}
