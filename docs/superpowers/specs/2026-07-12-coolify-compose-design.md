@@ -6,15 +6,14 @@ Package the complete Claims Recovery Agent into one production Docker Compose st
 
 ## Selected topology
 
-The stack will use five services:
+The stack will use four services:
 
 1. `web` builds the pnpm monorepo, serves the Vite production bundle with Nginx, and proxies `/api/*` to `api:8000`.
 2. `api` runs FastAPI with production Uvicorn settings and is reachable only inside the Compose network.
 3. `worker` runs the Procrastinate background worker from the same backend image.
-4. `migrate` applies Alembic and Procrastinate schemas before `api` and `worker` start.
-5. `db` runs PostgreSQL 16 with persistent storage.
+4. `db` runs PostgreSQL 16 with persistent storage.
 
-Only `web` exposes port 80 to Coolify. The API, worker, migration job, and database remain private. Coolify assigns the public domain to `web`; browser requests stay same-origin because Nginx forwards `/api` internally.
+Only `web` exposes port 80 to Coolify. The API, worker, and database remain private. The API applies Alembic and Procrastinate schemas before Uvicorn starts, and the worker waits for the API health check. Coolify assigns the public domain to `web`; browser requests stay same-origin because Nginx forwards `/api` internally.
 
 ## Build artifacts
 
@@ -40,10 +39,9 @@ The production stack will not expose PostgreSQL or FastAPI ports to the host. It
 ## Startup and failure behavior
 
 - `db` must pass `pg_isready` before migrations run.
-- `migrate` must complete successfully before `api` and `worker` start.
+- `api` must apply database schemas and pass its health check before `worker` starts.
 - `api` exposes `/health`; `web` exposes `/healthz` without proxying to the API.
 - `web` waits for a healthy API before becoming available.
-- The one-shot migration service is marked `exclude_from_hc` for Coolify.
 - Every long-running service uses an explicit restart policy.
 
 ## Validation

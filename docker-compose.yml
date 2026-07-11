@@ -1,0 +1,101 @@
+name: claims-recovery
+
+x-backend-environment: &backend-environment
+  DATABASE_URL: postgresql+asyncpg://claims:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@db:5432/claims
+  UPLOAD_DIR: /app/data/uploads
+  FIREWORKS_API_KEY: ${FIREWORKS_API_KEY:?FIREWORKS_API_KEY is required}
+  FIREWORKS_BASE_URL: ${FIREWORKS_BASE_URL:-https://api.fireworks.ai/inference/v1}
+  LOCAL_BASE_URL: ${LOCAL_BASE_URL:-}
+  LOCAL_API_KEY: ${LOCAL_API_KEY:-}
+  MODEL_CLASSIFIER: ${MODEL_CLASSIFIER:-fireworks:accounts/fireworks/models/gpt-oss-20b}
+  MODEL_EXTRACTOR: ${MODEL_EXTRACTOR:-fireworks:accounts/fireworks/models/gpt-oss-20b}
+  MODEL_VISION_OCR: ${MODEL_VISION_OCR:-fireworks:accounts/fireworks/models/kimi-k2p7-code}
+  MODEL_OCR_CLEANUP: ${MODEL_OCR_CLEANUP:-fireworks:accounts/fireworks/models/gpt-oss-120b}
+  MODEL_VISION_CLASSIFIER: ${MODEL_VISION_CLASSIFIER:-fireworks:accounts/fireworks/models/qwen3p7-plus}
+
+x-backend-service: &backend-service
+  image: claims-recovery-backend:${IMAGE_TAG:-latest}
+  build:
+    context: ./backend
+    dockerfile: Dockerfile
+  environment: *backend-environment
+  volumes:
+    - uploads-data:/app/data
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: claims
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: claims
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U claims -d claims"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  api:
+    <<: *backend-service
+    command:
+      - sh
+      - -c
+      - >-
+        alembic upgrade head &&
+        (procrastinate --app=claims_recovery.procrastinate_app.app schema --apply || true) &&
+        exec uvicorn claims_recovery.main:app --host 0.0.0.0 --port 8000
+        --proxy-headers --forwarded-allow-ips='*'
+    expose:
+      - "8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)
+      interval: 10s
+      timeout: 3s
+      start_period: 10s
+      retries: 10
+    restart: unless-stopped
+
+  worker:
+    <<: *backend-service
+    command:
+      - procrastinate
+      - --app=claims_recovery.procrastinate_app.app
+      - worker
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    image: claims-recovery-web:${IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    expose:
+      - "80"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 15s
+      timeout: 3s
+      start_period: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  uploads-data:

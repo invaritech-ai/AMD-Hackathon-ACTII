@@ -105,6 +105,36 @@ pnpm dev
 
 Open [http://localhost:5173](http://localhost:5173). Vite proxies `/api` requests to the FastAPI service.
 
+## Deploy on Coolify
+
+The root [`docker-compose.yml`](./docker-compose.yml) packages the complete production application:
+
+- `web`: Nginx serving the React build and proxying `/api` to FastAPI
+- `api`: private FastAPI service that applies database schemas before startup
+- `worker`: private Procrastinate document-processing worker
+- `db`: private PostgreSQL 16 database
+- Named volumes for PostgreSQL and uploaded documents
+
+Create a **Docker Compose** application in Coolify with:
+
+```text
+Repository: AMD-Hackathon-ACTII
+Branch: main
+Base Directory: /
+Docker Compose Location: /docker-compose.yml
+```
+
+Set these required runtime variables in Coolify:
+
+```text
+POSTGRES_PASSWORD=<long URL-safe alphanumeric password>
+FIREWORKS_API_KEY=<your Fireworks API key>
+```
+
+Optional model overrides are listed in [`.env.coolify.example`](./.env.coolify.example). Assign the public domain only to the `web` service on container port `80`. Do not assign domains or host ports to `api`, `worker`, or `db`.
+
+The production frontend and API use one origin: Nginx serves the SPA and forwards `/api/*` over the private Compose network. PostgreSQL and uploaded evidence survive deployments in named volumes.
+
 ## Demo evidence
 
 The repository includes three deterministic synthetic reconciliation cases under `backend/demo/synthetic-reconciliation/`:

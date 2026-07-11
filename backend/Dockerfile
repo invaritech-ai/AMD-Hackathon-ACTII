@@ -26,6 +26,10 @@ COPY --chown=appuser:appuser tests ./tests
 COPY --chown=appuser:appuser alembic ./alembic
 COPY --chown=appuser:appuser alembic.ini ./alembic.ini
 
+# An empty named volume inherits this directory's ownership on first mount.
+# Both the API and worker mount the same volume in production.
+RUN mkdir -p /app/data/uploads && chown -R appuser:appuser /app/data
+
 USER appuser
 
 EXPOSE 8000
