@@ -1,0 +1,64 @@
+{
+  "case_id": "case-03",
+  "label": "Invalid retailer deductions",
+  "retailer": {"name": "Woolworths Group Limited", "abn": "88 000 014 675"},
+  "supplier": {"name": "Southern Harvest Foods Pty Ltd", "abn": "57 803 330 303", "vendor_number": "200303"},
+  "currency": "AUD",
+  "delivery_address": "Woolworths Synthetic Test DC, 100 Demo Way, Mulgrave VIC 3170",
+  "po": {
+    "number": "4501003003",
+    "date": "03 July 2026",
+    "delivery_date": "10 July 2026",
+    "early_payment_discount_rate": 0,
+    "line_items": [
+      {"sku": "9300301", "description": "Organic Pasta Sauce 6-Pack", "quantity": 500, "unit": "CTN", "unit_price": 12.00, "line_total": 6000.00}
+    ],
+    "subtotal": 6000.00,
+    "gst": 0.00,
+    "total": 6000.00
+  },
+  "invoice": {
+    "number": "INV-SHF-260703",
+    "date": "10 July 2026",
+    "line_items": [
+      {"sku": "9300301", "description": "Organic Pasta Sauce 6-Pack", "quantity": 500, "unit": "CTN", "unit_price": 12.00, "line_total": 6000.00}
+    ],
+    "subtotal": 6000.00,
+    "gst": 0.00,
+    "total": 6000.00
+  },
+  "pod": {
+    "number": "POD-SHF-260703",
+    "date": "10 July 2026",
+    "received_by": "Casey Nguyen",
+    "line_items": [
+      {"sku": "9300301", "description": "Organic Pasta Sauce 6-Pack", "dispatched_quantity": 500, "received_quantity": 500, "unit": "CTN"}
+    ]
+  },
+  "debit_note": {
+    "number": "DN-SHF-260731",
+    "date": "31 July 2026",
+    "deductions": [
+      {"claim_id": "CLM-SHF-001", "reason": "Shrinkage", "reference": "INV-SHF-260703", "amount": 420.00},
+      {"claim_id": "CLM-SHF-002", "reason": "Promotional funding", "reference": "PROMO-2026-Q3-0312", "amount": 2500.00}
+    ],
+    "gross_amount": 6000.00,
+    "total_deductions": 2920.00,
+    "net_amount": 3080.00
+  },
+  "promo_agreement": {
+    "number": "PROMO-2026-Q3-0312",
+    "start_date": "01 July 2026",
+    "end_date": "14 July 2026",
+    "funding_rate": 0.50,
+    "funding_cap": 1600.00,
+    "signed": true
+  },
+  "outputs": {
+    "purchase_order": "01_purchase_order_4501003003.pdf",
+    "invoice": "02_invoice_INV-SHF-260703_scanned.pdf",
+    "delivery_docket": "03_pod_POD-SHF-260703.png",
+    "debit_note": "04_debit_note_DN-SHF-260731.pdf",
+    "promo_agreement": "05_promo_agreement_PROMO-2026-Q3-0312.pdf"
+  }
+}

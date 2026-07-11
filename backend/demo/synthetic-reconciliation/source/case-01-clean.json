@@ -1,0 +1,57 @@
+{
+  "case_id": "case-01",
+  "label": "Clean reconciliation",
+  "retailer": {"name": "Woolworths Group Limited", "abn": "88 000 014 675"},
+  "supplier": {"name": "Coastal Dairy Foods Pty Ltd", "abn": "31 602 410 101", "vendor_number": "200101"},
+  "currency": "AUD",
+  "delivery_address": "Woolworths Synthetic Test DC, 100 Demo Way, Mulgrave VIC 3170",
+  "po": {
+    "number": "4501001001",
+    "date": "01 July 2026",
+    "delivery_date": "08 July 2026",
+    "early_payment_discount_rate": 0.03,
+    "line_items": [
+      {"sku": "9100101", "description": "Cultured Butter 500g", "quantity": 400, "unit": "EA", "unit_price": 6.00, "line_total": 2400.00},
+      {"sku": "9100102", "description": "Mature Cheddar 1kg", "quantity": 300, "unit": "EA", "unit_price": 12.00, "line_total": 3600.00}
+    ],
+    "subtotal": 6000.00,
+    "gst": 0.00,
+    "total": 6000.00
+  },
+  "invoice": {
+    "number": "INV-CDF-260701",
+    "date": "08 July 2026",
+    "line_items": [
+      {"sku": "9100101", "description": "Cultured Butter 500g", "quantity": 400, "unit": "EA", "unit_price": 6.00, "line_total": 2400.00},
+      {"sku": "9100102", "description": "Mature Cheddar 1kg", "quantity": 300, "unit": "EA", "unit_price": 12.00, "line_total": 3600.00}
+    ],
+    "subtotal": 6000.00,
+    "gst": 0.00,
+    "total": 6000.00
+  },
+  "pod": {
+    "number": "POD-CDF-260701",
+    "date": "08 July 2026",
+    "received_by": "Alex Morgan",
+    "line_items": [
+      {"sku": "9100101", "description": "Cultured Butter 500g", "dispatched_quantity": 400, "received_quantity": 400, "unit": "EA"},
+      {"sku": "9100102", "description": "Mature Cheddar 1kg", "dispatched_quantity": 300, "received_quantity": 300, "unit": "EA"}
+    ]
+  },
+  "debit_note": {
+    "number": "DN-CDF-260731",
+    "date": "31 July 2026",
+    "deductions": [
+      {"claim_id": "CLM-CDF-001", "reason": "Authorised early payment discount", "reference": "4501001001", "amount": 180.00}
+    ],
+    "gross_amount": 6000.00,
+    "total_deductions": 180.00,
+    "net_amount": 5820.00
+  },
+  "outputs": {
+    "purchase_order": "01_purchase_order_4501001001.pdf",
+    "invoice": "02_invoice_INV-CDF-260701.pdf",
+    "delivery_docket": "03_pod_POD-CDF-260701.pdf",
+    "debit_note": "04_debit_note_DN-CDF-260731.pdf"
+  }
+}

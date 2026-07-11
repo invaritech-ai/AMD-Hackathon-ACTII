@@ -1,0 +1,54 @@
+{
+  "case_id": "case-02",
+  "label": "Delivery and deduction dispute",
+  "retailer": {"name": "Woolworths Group Limited", "abn": "88 000 014 675"},
+  "supplier": {"name": "Riverina Fresh Produce Pty Ltd", "abn": "46 701 220 202", "vendor_number": "200202"},
+  "currency": "AUD",
+  "delivery_address": "Woolworths Synthetic Test DC, 100 Demo Way, Mulgrave VIC 3170",
+  "po": {
+    "number": "4501002002",
+    "date": "02 July 2026",
+    "delivery_date": "09 July 2026",
+    "early_payment_discount_rate": 0,
+    "line_items": [
+      {"sku": "9200201", "description": "Baby Spinach 500g Carton", "quantity": 100, "unit": "CTN", "unit_price": 25.00, "line_total": 2500.00}
+    ],
+    "subtotal": 2500.00,
+    "gst": 0.00,
+    "total": 2500.00
+  },
+  "invoice": {
+    "number": "INV-RFP-260702",
+    "date": "09 July 2026",
+    "line_items": [
+      {"sku": "9200201", "description": "Baby Spinach 500g Carton", "quantity": 100, "unit": "CTN", "unit_price": 25.00, "line_total": 2500.00}
+    ],
+    "subtotal": 2500.00,
+    "gst": 0.00,
+    "total": 2500.00
+  },
+  "pod": {
+    "number": "POD-RFP-260702",
+    "date": "09 July 2026",
+    "received_by": "Jordan Lee",
+    "line_items": [
+      {"sku": "9200201", "description": "Baby Spinach 500g Carton", "dispatched_quantity": 100, "received_quantity": 95, "unit": "CTN"}
+    ]
+  },
+  "debit_note": {
+    "number": "DN-RFP-260731",
+    "date": "31 July 2026",
+    "deductions": [
+      {"claim_id": "CLM-RFP-001", "reason": "Short delivery - 10 cartons at AUD 30.00", "reference": "POD-RFP-260702", "claimed_quantity": 10, "unit_rate": 30.00, "amount": 300.00}
+    ],
+    "gross_amount": 2500.00,
+    "total_deductions": 300.00,
+    "net_amount": 2200.00
+  },
+  "outputs": {
+    "purchase_order": "01_purchase_order_4501002002.pdf",
+    "invoice": "02_invoice_INV-RFP-260702.pdf",
+    "delivery_docket": "03_pod_POD-RFP-260702.jpg",
+    "debit_note": "04_debit_note_DN-RFP-260731.pdf"
+  }
+}
