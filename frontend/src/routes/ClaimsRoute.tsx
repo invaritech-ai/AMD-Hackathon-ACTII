@@ -1,11 +1,10 @@
-import { useParams, useNavigate } from "react-router-dom";
-import { Copy, Printer } from "lucide-react";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
+import { Copy } from "lucide-react";
 import {
   Badge,
   Button,
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
   Skeleton,
@@ -19,210 +18,152 @@ import {
 import { PageContainer } from "@/components/PageContainer";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
-import { useClaims } from "@/hooks/useClaims";
+import { CaseSelector } from "@/components/cases/CaseSelector";
+import { useCaseReconciliation, useCases, useRunReconciliation } from "@/hooks/useCases";
+import { caseScopedPath } from "@/lib/caseRoutes";
 
-function claimStatusVariant(status: string) {
-  return status === "PAID" ? "success" : status === "SUBMITTED" ? "info" : "neutral";
-}
-
-function severityVariant(severity: string) {
-  return severity === "HIGH" ? "high" : severity === "MEDIUM" ? "medium" : "low";
-}
-
-function typeLabel(value: string) {
-  return value.replaceAll("_", " ");
+function formatAmount(value: string | null, currency: string | null) {
+  return value === null ? "-" : `${currency ? `${currency} ` : ""}${value}`;
 }
 
 export function ClaimsRoute() {
-  const { runId } = useParams<{ runId: string }>();
+  const { caseId } = useParams<{ caseId: string }>();
   const navigate = useNavigate();
-  const { data: claim, run, isLoading, isError, isFetching, refetch } = useClaims(runId);
+  const casesQuery = useCases();
+  const reconciliation = useCaseReconciliation(caseId ?? null);
+  const runReconciliation = useRunReconciliation();
 
-  const handleCopy = () => {
+  if (!caseId) return <Navigate to="/graph" replace />;
+
+  const defaultCaseId = casesQuery.data?.[0]?.case_id;
+  const caseExists = casesQuery.data?.some((caseItem) => caseItem.case_id === caseId) ?? false;
+
+  if (!casesQuery.isLoading && defaultCaseId && !caseExists) {
+    return <Navigate to={caseScopedPath(defaultCaseId, "claims")} replace />;
+  }
+  if (!casesQuery.isLoading && !defaultCaseId) {
+    return <Navigate to="/graph" replace />;
+  }
+
+  const response = reconciliation.data;
+  const claim = response?.claim;
+  const contributingExceptions = (response?.exceptions ?? []).filter((exception) => Number(exception.delta ?? "0") > 0);
+  const copyDraft = () => {
     if (claim?.draft_text) void navigator.clipboard.writeText(claim.draft_text);
   };
-
-  const handlePrint = () => window.print();
 
   return (
     <PageContainer>
       <PageHeader
-        title="Recovery Claim"
-        label="Claim Document"
-        labelColor="bg-[var(--color-accent)]"
-        description={
-          run
-            ? `${run.invoice_number} — ${run.supplier_name}`
-            : "Review generated recovery claims."
-        }
-        onBack={runId ? () => navigate("/") : undefined}
+        title="Case claim"
+        label="Recovery claim"
+        labelColor="bg-[var(--color-primary)]"
+        description={`Case ${caseId}`}
+        onBack={() => navigate("/graph")}
         actions={
-          runId ? (
-            <>
-              <Button variant="secondary" size="sm" onClick={() => void refetch()} disabled={isFetching}>
-                {isFetching ? "Refreshing..." : "Refresh"}
+          <>
+            <CaseSelector
+              cases={casesQuery.data}
+              currentCaseId={caseId}
+              page="claims"
+              isLoading={casesQuery.isLoading}
+            />
+            <Button variant="secondary" size="sm" disabled={runReconciliation.isPending} onClick={() => runReconciliation.mutate(caseId)}>
+              {runReconciliation.isPending ? "Checking..." : "Reconcile"}
+            </Button>
+            {claim?.draft_text && (
+              <Button variant="secondary" size="sm" onClick={copyDraft}>
+                <Copy className="h-4 w-4" /> Copy draft
               </Button>
-              {claim ? (
-                <>
-                  <Button variant="secondary" size="sm" onClick={handleCopy}>
-                    <Copy className="h-4 w-4" /> Copy
-                  </Button>
-                  <Button variant="secondary" size="sm" onClick={handlePrint}>
-                    <Printer className="h-4 w-4" /> Print
-                  </Button>
-                </>
-              ) : null}
-            </>
-          ) : undefined
+            )}
+          </>
         }
       />
 
-      {!runId ? (
-        <EmptyState
-          icon="claims"
-          title="No pipeline run selected"
-          description="Upload an invoice and run the recovery pipeline to generate a claim draft."
-          action={{ label: "Go to Pipeline", onClick: () => navigate("/") }}
-        />
-      ) : isLoading ? (
+      {reconciliation.isLoading ? (
         <Card>
-          <CardContent className="space-y-3 pt-8">
-            <Skeleton className="h-6 w-48" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-full" />
+          <CardContent className="space-y-3 p-5">
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-48 w-full" />
           </CardContent>
         </Card>
-      ) : isError ? (
+      ) : reconciliation.isError || !response ? (
         <EmptyState
           icon="claims"
-          title="Failed to load claim"
-          description="Check that the backend is running, then try again."
-          action={{ label: "Retry", onClick: () => void refetch() }}
+          title="Claim unavailable"
+          description="The latest case reconciliation could not be loaded."
+          action={{ label: "Retry", onClick: () => void reconciliation.refetch() }}
         />
       ) : !claim ? (
         <EmptyState
           icon="claims"
           title="No claim drafted"
-          description="This run has not generated a recovery claim."
+          description={response.summary ?? "Run reconciliation once this case has sufficient supporting evidence."}
+          action={{ label: "Run reconciliation", onClick: () => runReconciliation.mutate(caseId) }}
         />
       ) : (
-        <Card className="overflow-hidden">
-          <CardHeader className="border-b border-[var(--color-border)]">
-            <div className="flex items-start justify-between">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]" />
-                  <span className="text-[10px] font-[var(--font-mono)] tracking-[0.2em] text-[var(--color-accent)]/60 uppercase">
-                    {claim.claim_number}
-                  </span>
+        <div className="space-y-5">
+          <Card className="overflow-hidden">
+            <CardHeader className="border-b border-[var(--color-border)]">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-label">Claim {claim.id}</p>
+                  <CardTitle className="mt-1">Case {caseId}</CardTitle>
                 </div>
-                <CardTitle>{claim.invoice_number}</CardTitle>
-                <p className="text-xs text-[var(--color-foreground-subtle)] font-[var(--font-mono)]">
-                  <span>{claim.claim_date}</span>
-                  <span className="mx-2 text-[var(--color-border)]">/</span>
-                  <span>PO {claim.po_number}</span>
-                </p>
+                <Badge variant="neutral">{claim.status}</Badge>
               </div>
-              <Badge variant={claimStatusVariant(claim.status)}>{claim.status}</Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-              <Card className="border-[var(--color-primary-border)] bg-[var(--color-primary-soft)]">
-                <CardContent className="space-y-2 p-5">
-                  <p className="text-[10px] font-[var(--font-mono)] tracking-[0.2em] text-[var(--color-foreground-subtle)]">
-                    TOTAL CLAIM AMOUNT
-                  </p>
-                  <p className="text-3xl font-[var(--font-mono)] font-semibold tracking-tight text-[var(--color-primary)]">
-                    ${claim.total_claim_amount.toFixed(2)}
-                  </p>
-                </CardContent>
-              </Card>
+            </CardHeader>
+            <CardContent className="grid gap-5 p-5 lg:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)]">
+              <div className="rounded-xl border border-[var(--color-primary-border)] bg-[var(--color-primary-soft)] p-5">
+                <p className="text-label">Total claim amount</p>
+                <p className="mt-3 font-[var(--font-mono)] text-3xl font-semibold text-[var(--color-primary)]">
+                  {formatAmount(claim.total_amount, claim.currency ?? response.currency)}
+                </p>
+                <p className="mt-3 text-[12px] text-[var(--color-foreground-muted)]">Claim status: {claim.status}</p>
+              </div>
+              <div>
+                <p className="text-label">Draft letter</p>
+                <pre className="workspace-bezel mt-3 max-h-64 overflow-auto rounded-lg p-4 whitespace-pre-wrap font-[var(--font-mono)] text-[13px] leading-6 text-[var(--color-foreground-muted)]">
+                  {claim.draft_text ?? "No draft letter was returned."}
+                </pre>
+              </div>
+            </CardContent>
+          </Card>
 
-              <Card className="bg-[var(--color-surface-raised)]">
-                <CardHeader className="p-5 pb-3">
-                  <CardTitle className="text-base">Claim metadata</CardTitle>
-                  <CardDescription>Recovered against the original invoice record.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3 p-5 pt-0 font-[var(--font-mono)] text-xs">
-                  <div className="flex items-center justify-between gap-4 border-b border-[var(--color-border)] pb-3">
-                    <span className="text-[var(--color-foreground-subtle)]">Claim number</span>
-                    <span className="text-right text-[var(--color-foreground)]">{claim.claim_number}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-4 border-b border-[var(--color-border)] pb-3">
-                    <span className="text-[var(--color-foreground-subtle)]">Invoice</span>
-                    <span className="text-right text-[var(--color-foreground)]">{claim.invoice_number}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="text-[var(--color-foreground-subtle)]">Purchase order</span>
-                    <span className="text-right text-[var(--color-foreground)]">{claim.po_number}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {claim.draft_text ? (
-              <Card className="overflow-hidden">
-                <CardHeader className="border-b border-[var(--color-border)]">
-                  <CardTitle className="text-base">Draft recovery letter</CardTitle>
-                  <CardDescription>Generated claim text for supplier outreach.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <pre className="workspace-bezel max-h-[230px] overflow-auto rounded-lg p-4 whitespace-pre-wrap font-[var(--font-mono)] text-[13px] leading-6 text-[var(--color-foreground-muted)]">
-                    {claim.draft_text}
-                  </pre>
-                </CardContent>
-              </Card>
-            ) : (
-              run && run.discrepancies.length > 0 && (
-                <Card className="overflow-hidden">
-                  <CardHeader className="border-b border-[var(--color-border)]">
-                    <CardTitle className="text-base">Claim line items</CardTitle>
-                    <CardDescription>Every discrepancy contributing to this recovery request.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="max-h-[calc(100dvh-430px)] overflow-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Item</TableHead>
-                          <TableHead>Type</TableHead>
-                          <TableHead>Expected</TableHead>
-                          <TableHead>Actual</TableHead>
-                          <TableHead className="text-right">Impact</TableHead>
-                          <TableHead className="text-right">Severity</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {run.discrepancies.map((discrepancy, index) => (
-                          <TableRow key={`${discrepancy.invoice_number}-${index}`}>
-                            <TableCell className="max-w-64 truncate font-medium text-[var(--color-foreground)]">
-                              {discrepancy.item_description}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="neutral">{typeLabel(discrepancy.discrepancy_type)}</Badge>
-                            </TableCell>
-                            <TableCell className="font-[var(--font-mono)] text-xs text-[var(--color-foreground-subtle)]">
-                              ${(discrepancy.expected_unit_price ?? 0).toFixed(2)}
-                            </TableCell>
-                            <TableCell className="font-[var(--font-mono)] text-xs text-[var(--color-foreground-subtle)]">
-                              ${(discrepancy.actual_unit_price ?? 0).toFixed(2)}
-                            </TableCell>
-                            <TableCell className="text-right font-[var(--font-mono)] text-sm text-[var(--color-destructive)]">
-                              +${discrepancy.difference_amount.toFixed(2)}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Badge variant={severityVariant(discrepancy.severity)}>{discrepancy.severity}</Badge>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              )
-            )}
-          </CardContent>
-        </Card>
+          <Card className="overflow-hidden">
+            <CardHeader className="border-b border-[var(--color-border)]">
+              <CardTitle className="text-base">Exceptions contributing to this claim</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {contributingExceptions.length === 0 ? (
+                <p className="p-5 text-[13px] text-[var(--color-foreground-muted)]">No recoverable exception rows were returned.</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Exception</TableHead>
+                      <TableHead>Document</TableHead>
+                      <TableHead>Check</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Recoverable delta</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {contributingExceptions.map((exception) => (
+                      <TableRow key={exception.id}>
+                        <TableCell className="font-[var(--font-mono)] text-xs">{exception.id}</TableCell>
+                        <TableCell className="font-[var(--font-mono)] text-xs">{exception.document_id ?? "-"}</TableCell>
+                        <TableCell><Badge variant="neutral">{exception.check_type.replaceAll("_", " ")}</Badge></TableCell>
+                        <TableCell className="capitalize">{exception.status}</TableCell>
+                        <TableCell className="font-[var(--font-mono)] text-xs text-[var(--color-destructive)]">{formatAmount(exception.delta, exception.currency)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       )}
     </PageContainer>
   );

@@ -1,110 +1,153 @@
-import { useParams, useNavigate } from "react-router-dom";
-import { Badge, Button, Card, CardContent, Skeleton } from "@claims/ui";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
+import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  Skeleton,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@claims/ui";
 import { PageContainer } from "@/components/PageContainer";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
-import { useDiscrepancies } from "@/hooks/useDiscrepancies";
-import { DiscrepancyTable } from "@/components/DiscrepancyTable";
-import { DiscrepancyDetail } from "@/components/DiscrepancyDetail";
+import { CaseSelector } from "@/components/cases/CaseSelector";
+import { useCaseReconciliation, useCases, useRunReconciliation } from "@/hooks/useCases";
+import { caseScopedPath } from "@/lib/caseRoutes";
+
+function severityVariant(severity: string) {
+  return severity.toLowerCase() === "high" ? "high" : severity.toLowerCase() === "medium" ? "medium" : "low";
+}
+
+function formatAmount(value: string | null, currency: string | null) {
+  return value === null ? "-" : `${currency ? `${currency} ` : ""}${value}`;
+}
 
 export function DiscrepanciesRoute() {
-  const { runId } = useParams<{ runId: string }>();
+  const { caseId } = useParams<{ caseId: string }>();
   const navigate = useNavigate();
-  const { data: discrepancies, run, isLoading, isError, isFetching, refetch } = useDiscrepancies(runId);
-  const totalImpact = discrepancies.reduce((sum, discrepancy) => sum + discrepancy.difference_amount, 0);
-  const highSeverityCount = discrepancies.filter((discrepancy) => discrepancy.severity === "HIGH").length;
-  const reviewCount = discrepancies.filter((discrepancy) => discrepancy.severity !== "LOW").length;
+  const casesQuery = useCases();
+  const reconciliation = useCaseReconciliation(caseId ?? null);
+  const runReconciliation = useRunReconciliation();
+
+  if (!caseId) return <Navigate to="/graph" replace />;
+
+  const defaultCaseId = casesQuery.data?.[0]?.case_id;
+  const caseExists = casesQuery.data?.some((caseItem) => caseItem.case_id === caseId) ?? false;
+
+  if (!casesQuery.isLoading && defaultCaseId && !caseExists) {
+    return <Navigate to={caseScopedPath(defaultCaseId, "discrepancies")} replace />;
+  }
+  if (!casesQuery.isLoading && !defaultCaseId) {
+    return <Navigate to="/graph" replace />;
+  }
+
+  const response = reconciliation.data;
+  const exceptions = response?.exceptions ?? [];
 
   return (
     <PageContainer>
       <PageHeader
-        title="Discrepancy Analysis"
-        label="Discrepancies"
+        title="Case discrepancies"
+        label="Reconciliation"
         labelColor="bg-[var(--color-warning)]"
-        description={
-          run
-            ? `${run.invoice_number} — ${run.supplier_name}`
-            : "Inspect the recovery exposure found in a completed processing run."
-        }
-        onBack={runId ? () => navigate("/") : undefined}
+        description={`Case ${caseId}`}
+        onBack={() => navigate("/graph")}
         actions={
-          runId ? (
-            <Button variant="secondary" size="sm" onClick={() => void refetch()} disabled={isFetching}>
-              {isFetching ? "Refreshing..." : "Refresh"}
+          <>
+            <CaseSelector
+              cases={casesQuery.data}
+              currentCaseId={caseId}
+              page="discrepancies"
+              isLoading={casesQuery.isLoading}
+            />
+            <Button variant="secondary" size="sm" disabled={runReconciliation.isPending} onClick={() => runReconciliation.mutate(caseId)}>
+              {runReconciliation.isPending ? "Checking..." : "Reconcile"}
             </Button>
-          ) : undefined
+          </>
         }
       />
 
-      {!runId ? (
-        <EmptyState
-          icon="discrepancies"
-          title="No pipeline run selected"
-          description="Upload and process an invoice through the pipeline to detect discrepancies."
-          action={{ label: "Go to Pipeline", onClick: () => navigate("/") }}
-        />
-      ) : isLoading ? (
+      {reconciliation.isLoading ? (
         <Card>
-          <CardContent className="space-y-3 pt-8">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
+          <CardContent className="space-y-3 p-5">
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-48 w-full" />
           </CardContent>
         </Card>
-      ) : isError ? (
+      ) : reconciliation.isError || !response ? (
         <EmptyState
           icon="discrepancies"
-          title="Failed to load discrepancies"
-          description="Check that the backend is running, then try again."
-          action={{ label: "Retry", onClick: () => void refetch() }}
-        />
-      ) : discrepancies.length === 0 ? (
-        <EmptyState
-          icon="discrepancies"
-          title="No anomalies detected"
-          description="This run completed with no discrepancies."
+          title="Reconciliation unavailable"
+          description="The latest case reconciliation could not be loaded."
+          action={{ label: "Retry", onClick: () => void reconciliation.refetch() }}
         />
       ) : (
-        <div className="space-y-6">
-          <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr_0.85fr]">
-            <Card className="border-[rgb(241_100_100_/_0.3)]">
+        <div className="space-y-5">
+          <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr_0.8fr]">
+            <Card className={response.status === "exceptions_found" ? "border-[rgb(241_100_100_/_0.3)]" : "border-[rgb(43_203_136_/_0.3)]"}>
               <CardContent className="p-5">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-label">Recoverable exposure</p>
-                  <Badge variant="high">Priority</Badge>
+                  <p className="text-label">Reconciliation status</p>
+                  <Badge variant={response.status === "exceptions_found" ? "high" : "success"}>{response.status.replaceAll("_", " ")}</Badge>
                 </div>
-                <p className="mt-3 font-[var(--font-mono)] text-[30px] font-semibold leading-none tracking-[-0.03em] text-[var(--color-destructive)]">
-                  ${totalImpact.toFixed(2)}
+                <p className="mt-3 text-[13px] leading-5 text-[var(--color-foreground-muted)]">{response.summary ?? "No reconciliation summary available."}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-5">
+                <p className="text-label">Total recoverable</p>
+                <p className="mt-3 font-[var(--font-mono)] text-2xl font-semibold text-[var(--color-destructive)]">
+                  {formatAmount(response.total_recoverable, response.currency)}
                 </p>
-                <p className="mt-2 text-[12px] text-[var(--color-foreground-muted)]">Potential recovery across this run.</p>
               </CardContent>
             </Card>
-
             <Card>
               <CardContent className="p-5">
-                <p className="text-label">Flagged lines</p>
-                <div className="mt-3 flex items-end justify-between gap-3">
-                  <p className="font-[var(--font-mono)] text-[28px] font-semibold leading-none text-[var(--color-foreground)]">{discrepancies.length}</p>
-                  <Badge variant="neutral">Run scope</Badge>
-                </div>
-                <p className="mt-2 text-[12px] text-[var(--color-foreground-muted)]">Evidence rows requiring comparison.</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-5">
-                <p className="text-label">Review priority</p>
-                <div className="mt-3 flex items-end justify-between gap-3">
-                  <p className="font-[var(--font-mono)] text-[28px] font-semibold leading-none text-[var(--color-foreground)]">{reviewCount}</p>
-                  <Badge variant={highSeverityCount > 0 ? "high" : "neutral"}>{highSeverityCount} high</Badge>
-                </div>
-                <p className="mt-2 text-[12px] text-[var(--color-foreground-muted)]">Medium and high findings to validate.</p>
+                <p className="text-label">Exceptions</p>
+                <p className="mt-3 font-[var(--font-mono)] text-2xl font-semibold text-[var(--color-foreground)]">{exceptions.length}</p>
               </CardContent>
             </Card>
           </div>
 
-          <DiscrepancyTable discrepancies={discrepancies} />
-          <DiscrepancyDetail discrepancies={discrepancies} />
+          {exceptions.length === 0 ? (
+            <EmptyState icon="discrepancies" title="No exceptions found" description="This case has no recoverable exceptions in its latest reconciliation." />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Exception</TableHead>
+                  <TableHead>Document</TableHead>
+                  <TableHead>Check</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Severity</TableHead>
+                  <TableHead>Expected</TableHead>
+                  <TableHead>Actual deduction</TableHead>
+                  <TableHead>Recoverable delta</TableHead>
+                  <TableHead>Explanation</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {exceptions.map((exception) => (
+                  <TableRow key={exception.id}>
+                    <TableCell className="font-[var(--font-mono)] text-xs">{exception.id}</TableCell>
+                    <TableCell className="font-[var(--font-mono)] text-xs">{exception.document_id ?? "-"}</TableCell>
+                    <TableCell><Badge variant="neutral">{exception.check_type.replaceAll("_", " ")}</Badge></TableCell>
+                    <TableCell className="capitalize">{exception.status}</TableCell>
+                    <TableCell><Badge variant={severityVariant(exception.severity)}>{exception.severity}</Badge></TableCell>
+                    <TableCell className="font-[var(--font-mono)] text-xs">{formatAmount(exception.expected_value, exception.currency)}</TableCell>
+                    <TableCell className="font-[var(--font-mono)] text-xs">{formatAmount(exception.actual_value, exception.currency)}</TableCell>
+                    <TableCell className="font-[var(--font-mono)] text-xs text-[var(--color-destructive)]">{formatAmount(exception.delta, exception.currency)}</TableCell>
+                    <TableCell className="min-w-72 text-[12px] leading-5 text-[var(--color-foreground-muted)]">{exception.explanation ?? "-"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </div>
       )}
     </PageContainer>
